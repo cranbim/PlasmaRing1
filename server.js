@@ -6,6 +6,7 @@ var server=app.listen(4000);
 
 var sessions=[];
 var nextID=10000;
+var heartbeat=1000;
 
 app.use(express.static('public'));
 
@@ -17,6 +18,8 @@ var socket = require('socket.io');
 var io=socket(server);
 
 io.sockets.on('connection', newConnection);
+
+var h=setInterval(beat,1000);
 
 function newConnection(socket){
   var session=new Session(socket);
@@ -41,7 +44,11 @@ function newConnection(socket){
 	}
 }
 
-
+function beat(){
+	heartbeat++;
+	console.log("heartbeat "+heartbeat);
+	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
+}
 
 function Session(socket){ //class to hold session info
 	this.socket=socket;
