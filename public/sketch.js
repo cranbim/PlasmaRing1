@@ -1,4 +1,6 @@
 var socket;
+var posX=0;
+var count=0;
 
 function setup() {
   createCanvas(400,400);
@@ -9,11 +11,24 @@ function setup() {
   socket.on('disconnect', function(){
     console.log("Disconnected from server ("+socket.id+")");
   });
-  socket.on('mouse', incomingMouse);
+  socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
 }
 
 function draw() {
+  background(255,50);
+  count++;
+  posX++;
+  if(count%10===0){
+    socket.emit('blob',{x:posX});
+  }
+  if(posX>=width){
+    count=0;
+    posX=0;
+  }
+  fill(0,200,200);
+  noStroke();
+  ellipse(posX,height/2,10,10);
   //background(200,150,10);
 }
 
@@ -31,11 +46,11 @@ function mouseDragged(){
   ellipse(mouseX, mouseY,50,50);
 }
 
-function incomingMouse(data){
+function incomingBlob(data){
 	//console.log("incoming "+data);
-	noStroke();
-  fill(100,80,150);
-  ellipse(data.x, data.y,50,50);
+	noFill();
+  stroke(100,80,60);
+  ellipse(data.x, height/4,10,10);
 }
 
 function beat(data){

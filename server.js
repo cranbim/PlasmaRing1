@@ -8,6 +8,8 @@ var sessions=[];
 var nextID=10000;
 var heartbeat=1000;
 
+var ring=new Ring();
+
 app.use(express.static('public'));
 
 console.log("My socket server is running");
@@ -26,13 +28,19 @@ function newConnection(socket){
   sessions.push(session);
   console.log("New connection, session:"+session.id+" socket:"+socket.id);
   console.log("Num sessions:"+sessions.length);
-  socket.on('mouse', mouseMsg);
+  //socket.on('mouse', mouseMsg);
   socket.on('disconnect', clientDisconnect);
-
-  function mouseMsg(data){
-			console.log(data +' from '+socket.id);
-			socket.broadcast.emit('mouse', data);
+  socket.on('join',joiner);
+  socket.on('blob',blobMsg);
+  
+  function blobMsg(data){
+			//console.log(data.x +' from '+socket.id);
+			socket.broadcast.emit('blob', data);
   }
+
+  function joiner(data){
+		var se=ring.join(data.x);
+	}
 
   function clientDisconnect(){
 		var i=sessions.forEach(function(sesh,index){
@@ -53,4 +61,17 @@ function beat(){
 function Session(socket){ //class to hold session info
 	this.socket=socket;
 	this.id=nextID++; //increment the ID number
+}
+
+
+function Ring(){
+	this.ringID=0;
+	this.size=0;
+
+	this.join=function(x){
+		var s=this.size;
+		this.size+=x;
+		return {start: s,
+						end:this.size};
+	}
 }
