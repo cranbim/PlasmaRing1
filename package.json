@@ -1,0 +1,15 @@
+{
+  "name": "p5nodev1",
+  "version": "1.0.0",
+  "description": "p5 and node example",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "DJW",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
+}
