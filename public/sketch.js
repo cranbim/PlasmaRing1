@@ -1,4 +1,5 @@
 var socket;
+var id;
 var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
@@ -10,11 +11,11 @@ function setup() {
   statusMessage = select('#status');
   socket=io.connect('http://localhost:4000');
   socket.on('connect', connected);
+  socket.on('id',setID);
   socket.on('disconnect', function(){
     console.log("Disconnected from server ("+socket.id+")");
     button.html("Nothing");
   });
-  
 }
 
 function connected(){
@@ -25,15 +26,24 @@ function connected(){
   socket.on('heartbeat',beat);
 }
 
+function setID(data){
+  id=data.id;
+  console.log("My ID="+id);
+}
+
 function joinMe(){
   if(connectionStatus===0){
     button.html('un-Join');
     connectionStatus=1;
     statusMessage.html('Joined');
+    socket.emit('join',{});
+    console.log("request join to unattached");
   }else if(connectionStatus===1){
     button.html('Join');
     connectionStatus=0;
     statusMessage.html('Connected');
+    socket.emit('unjoin',{id: id});
+    console.log("request unjoin from unattached");
   }
 }
 

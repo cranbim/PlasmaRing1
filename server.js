@@ -22,7 +22,7 @@ var io=socket(server);
 
 io.sockets.on('connection', newConnection);
 
-var h=setInterval(beat,1000);
+var h=setInterval(beat,1000);//set one second heartbeat
 
 function newConnection(socket){
   var session=new Session(socket);
@@ -32,6 +32,7 @@ function newConnection(socket){
   //socket.on('mouse', mouseMsg);
   socket.on('disconnect', clientDisconnect);
   socket.on('join',joiner);
+  socket.on('unjoin',unjoiner);
   socket.on('blob',blobMsg);
   
   function blobMsg(data){
@@ -40,8 +41,12 @@ function newConnection(socket){
   }
 
   function joiner(data){
-		var se=unattached.join(data);
+		var newUnAttached=new DeviceShadow(session);
+		unattached.joinRing(newUnAttached);
+	}
 
+	function unjoiner(data){
+		unattached.unjoinRing(data.id);
 	}
 
   function clientDisconnect(){
@@ -63,21 +68,37 @@ function beat(){
 function Session(socket){ //class to hold session info
 	this.socket=socket;
 	this.id=nextID++; //increment the ID number
+	socket.emit('id',{id:this.id});
 }
 
 
 function Ring(){
 	this.ringID=0;
 	this.size=0;
-	this.joinRing=function(x){
+	this.deviceShadows=[];
+	this.joinRing=function(shadow){
+		this.deviceShadows.push(shadow);
+		console.log("new dev shadow joins ring, "+this.deviceShadows.length);
+		console.log(this.deviceShadows);
+	};
+	this.unjoinRing=function(id){
+		var i=this.deviceShadows.forEach(function(ds,index){
+			if(ds.session.id==id) return index;
+		});
+		this.deviceShadows[i]=null;
+		this.deviceShadows.splice(i,1);
+		console.log("unJoined device shadow: "+id+" "+this.deviceShadows.length);
+	};
+	this.attach=function(data){
 		var s=this.size;
-		this.size+=x;
+		this.size+=data.x;
 		return {start: s,
 						end:this.size};
 	};
 }
 
-function DeviceShadow(){
-	
+function DeviceShadow(session){
+	this.session=session;
+	console.log("New device shadow "+this.session.id);
 }
 
