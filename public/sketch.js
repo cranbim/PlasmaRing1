@@ -3,11 +3,13 @@ var id;
 var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
-var button, statusMessage;
+var button, attachButton, statusMessage;
 
 function setup() {
   createCanvas(400,400);
   button = select('#join');
+  attachButton = select('#attach');
+  attachButton.hide();
   statusMessage = select('#status');
   socket=io.connect('http://localhost:4000');
   socket.on('connect', connected);
@@ -22,6 +24,7 @@ function connected(){
   console.log("Connected ("+socket.id+")");
   statusMessage.html("Connected");
   button.mouseClicked(joinMe);
+  attachButton.mouseClicked(attachMe);
   socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
 }
@@ -37,6 +40,7 @@ function joinMe(){
     connectionStatus=1;
     statusMessage.html('Joined');
     socket.emit('join',{});
+    attachButton.show();
     console.log("request join to unattached");
   }else if(connectionStatus===1){
     button.html('Join');
@@ -44,7 +48,12 @@ function joinMe(){
     statusMessage.html('Connected');
     socket.emit('unjoin',{id: id});
     console.log("request unjoin from unattached");
+    attachButton.hide();
   }
+}
+function attachMe(){
+  socket.emit('attach',{id: id});
+  console.log("requested attachement to ring");
 }
 
 function draw() {

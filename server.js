@@ -34,6 +34,7 @@ function newConnection(socket){
   socket.on('join',joiner);
   socket.on('unjoin',unjoiner);
   socket.on('blob',blobMsg);
+  socket.on('attach',unattached.attachRequested);
   
   function blobMsg(data){
 			//console.log(data.x +' from '+socket.id);
@@ -76,6 +77,7 @@ function Ring(){
 	this.ringID=0;
 	this.size=0;
 	this.deviceShadows=[];
+	this.requesters=[];
 	this.joinRing=function(shadow){
 		this.deviceShadows.push(shadow);
 		console.log("new dev shadow joins ring, "+this.deviceShadows.length);
@@ -89,6 +91,11 @@ function Ring(){
 		this.deviceShadows.splice(i,1);
 		console.log("unJoined device shadow: "+id+" "+this.deviceShadows.length);
 	};
+	
+	this.attachRequested=function(data){
+		console.log("Attachment to ring requested, "+data.id);
+	};
+
 	this.attach=function(data){
 		var s=this.size;
 		this.size+=data.x;
