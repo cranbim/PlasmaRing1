@@ -4,15 +4,16 @@ var app=express();
 
 var server=app.listen(4000);
 
-var sessions=[];
 var nextID=10000;
 var heartbeat=1000;
 
-var ring=new Ring();
+var ring=new Ring(); //ring to monitor attached devices
+var unattached=new Ring(); //ring to monitor unattached devices
+var sessions=[];
 
 app.use(express.static('public'));
 
-console.log("My socket server is running");
+console.log("The Plasma Ring Serevr is running");
 console.log("Listening on port:4000");
 
 var socket = require('socket.io');
@@ -39,7 +40,8 @@ function newConnection(socket){
   }
 
   function joiner(data){
-		var se=ring.join(data.x);
+		var se=unattached.join(data);
+
 	}
 
   function clientDisconnect(){
@@ -67,11 +69,15 @@ function Session(socket){ //class to hold session info
 function Ring(){
 	this.ringID=0;
 	this.size=0;
-
-	this.join=function(x){
+	this.joinRing=function(x){
 		var s=this.size;
 		this.size+=x;
 		return {start: s,
 						end:this.size};
-	}
+	};
 }
+
+function DeviceShadow(){
+	
+}
+

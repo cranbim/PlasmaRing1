@@ -1,22 +1,44 @@
 var socket;
 var posX=0;
 var count=0;
+var connectionStatus=0; //0=connected, 1=unattached, 2=attached
+var button, statusMessage;
 
 function setup() {
   createCanvas(400,400);
+  button = select('#join');
+  statusMessage = select('#status');
   socket=io.connect('http://localhost:4000');
-  socket.on('connect', function(){
-    console.log("Connected ("+socket.id+")");
-  });
+  socket.on('connect', connected);
   socket.on('disconnect', function(){
     console.log("Disconnected from server ("+socket.id+")");
+    button.html("Nothing");
   });
+  
+}
+
+function connected(){
+  console.log("Connected ("+socket.id+")");
+  statusMessage.html("Connected");
+  button.mouseClicked(joinMe);
   socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
 }
 
+function joinMe(){
+  if(connectionStatus===0){
+    button.html('un-Join');
+    connectionStatus=1;
+    statusMessage.html('Joined');
+  }else if(connectionStatus===1){
+    button.html('Join');
+    connectionStatus=0;
+    statusMessage.html('Connected');
+  }
+}
+
 function draw() {
-  background(255,50);
+  background(155,50);
   count++;
   posX++;
   if(count%10===0){
@@ -30,20 +52,6 @@ function draw() {
   noStroke();
   ellipse(posX,height/2,10,10);
   //background(200,150,10);
-}
-
-function mouseDragged(){
-  console.log(mouseX+" "+mouseY);
-  var data={
-	x: mouseX,
-	y: mouseY
-  };
-
-  socket.emit('mouse', data);
-
-  noStroke();
-  fill(0,80,150);
-  ellipse(mouseX, mouseY,50,50);
 }
 
 function incomingBlob(data){
