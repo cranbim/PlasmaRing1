@@ -28,6 +28,11 @@ function connected(){
   socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
   socket.on('rfpermit',requestForPermit);
+  socket.on('attached',attachedToRing);
+}
+
+function attachedToRing(data){
+  console.log("Successfully attached to ring: "+data.ring);
 }
 
 function setID(data){

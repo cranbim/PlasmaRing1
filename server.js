@@ -73,6 +73,9 @@ function beat(){
 	ring.run();
 }
 
+
+
+
 function Session(socket){ //class to hold session info
 	this.socket=socket;
 	this.id=nextID++; //increment the ID number
@@ -83,12 +86,14 @@ function Session(socket){ //class to hold session info
 
 
 function Ring(name){
+	var self=this;
 	this.ringID=nextRingID++;
 	this.name=name;
 	this.size=0;
 	this.deviceShadows=[];
-	this.requesters=[];
+	var requesters=[];
 	this.attachGrants=[];
+
 	this.joinRing=function(shadow){
 		this.deviceShadows.push(shadow);
 		console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
@@ -102,33 +107,46 @@ function Ring(name){
 		this.deviceShadows.splice(i,1);
 		console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
 	};
+
+	this.findDevShadow=function(devid){
+		return this.deviceShadows.find(function(ds){
+			return ds.session.id===devid;
+		});
+	};
 	
 	this.attachRequested=function(data){
 		console.log(this.name+" "+this.ringID+" "+"Attachment to ring requested, "+data.id);
 		var ar=new AttachRequest(data.id);
-		this.requesters.push(ar);
+		requesters.push(ar);
 	};
 
-	this.attach=function(data){
-		var s=this.size;
-		this.size+=data.x;
-		return {start: s,
-						end:this.size};
-	};
+	// this.attach=function(data){
+	// 	var s=this.size;
+	// 	this.size+=data.x;
+	// 	return {start: s,
+	// 					end:this.size};
+	// };
 
 	this.run=function(){
-		var newRequests=false;
-			console.log(this.name+" "+this.ringID+" running");
+		console.log(this.name+" "+this.ringID+" running");
+		processAttachRequests();
+
+		function processAttachRequests(){
+			var newRequests=false;
 			//remove any expired requests
-			this.requesters=this.requesters.filter(function(r){
+			requesters=requesters.filter(function(r){
 				return !r.isExpired();
 			});
-			console.log(this.name+" "+this.ringID+" there are this many attach requests: "+this.requesters.length);
+			console.log(self.name+" "+self.ringID+" there are this many attach requests: "+requesters.length);
 			//check if there are requestors
-			this.requesters.forEach(
+			requesters.forEach(
 				function(requester){
 					//any new requestors?
 					if(!requester.requestBroadcastSent){
+						if(self.deviceShadows.length===0){
+							//there are no other devices, so I can just join
+							attachToRing(requester.requestingDev);
+						}
 						requester.requestBroadcastSent=true;
 						newRequests=true;
 					}
@@ -137,14 +155,38 @@ function Ring(name){
 			if(newRequests){
 				console.log("new Request For Permit Broadcast");
 				//send out permit requests if necessary
-				this.deviceShadows.forEach(function(devShadow){
+				self.deviceShadows.forEach(function(devShadow){
 					//send out permit requests if necessary
 					devShadow.requestForPermit();
 					//if just been sent out then don't broadcast
 				});
 			} else console.log("NO Request For Permit Broadcast");
-			//any permissions ready to send back?
+				//any permissions ready to send back?	
+		}
 	};
+
+	function processAttachPermits(){
+		//remove any expired grants
+		this.attachGrants=this.attachGrants.filter(function(g){
+			return !g.isExpired();
+		});
+		//check if we even need a grant
+	}
+
+	
+
+	function attachToRing(devid){
+		console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid);
+		//find device shadow in lobby
+		var ds=unattached.findDevShadow(devid);
+		//assign device shadow to this ring
+		self.joinRing(ds);
+		//remove from lobby
+		unattached.unjoinRing(devid);
+		//notify the device
+		var s=ds.session.socket;
+		s.emit('attached',{ring: self.ringID});
+	}
 
 
 	function AttachRequest(devid){
@@ -177,7 +219,7 @@ function DeviceShadow(session){
 
 	this.requestForPermit=function(){
 		console.log(this.session.id+" received request for attach permit. Pass to device");
-		this.socket.emit('rfpermit',{});
+		this.session.socket.emit('rfpermit',{});
 	};
 }
 
