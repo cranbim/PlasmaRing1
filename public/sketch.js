@@ -33,6 +33,8 @@ function connected(){
 
 function attachedToRing(data){
   console.log("Successfully attached to ring: "+data.ring);
+  statusMessage.html('Attached to Ring');
+  attachButton.html('detach');
 }
 
 function setID(data){
@@ -64,6 +66,7 @@ function joinMe(){
 function attachMe(){
   socket.emit('attach',{id: id});
   console.log("requested attachement to ring");
+  statusMessage.html('Requested attachment to Ring');
 }
 
 function draw() {

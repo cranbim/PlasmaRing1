@@ -37,6 +37,7 @@ function newConnection(socket){
   socket.on('unjoin',unjoiner);
   socket.on('blob',blobMsg);
   socket.on('attach',attacher);
+  socket.on('permit',permitReceived);
   
   function blobMsg(data){
 			//console.log(data.x +' from '+socket.id);
@@ -45,6 +46,10 @@ function newConnection(socket){
 
   function attacher(data){
   	ring.attachRequested(data);
+  }
+
+  function permitReceived(data){
+  	ring.permitReceived(data);
   }
 
   function joiner(data){
@@ -120,6 +125,10 @@ function Ring(name){
 		requesters.push(ar);
 	};
 
+	this.permitReceived=function(data){
+
+	}
+
 	// this.attach=function(data){
 	// 	var s=this.size;
 	// 	this.size+=data.x;
@@ -128,7 +137,7 @@ function Ring(name){
 	// };
 
 	this.run=function(){
-		console.log(this.name+" "+this.ringID+" running");
+		//console.log(this.name+" "+this.ringID+" running");
 		processAttachRequests();
 
 		function processAttachRequests(){
@@ -137,7 +146,7 @@ function Ring(name){
 			requesters=requesters.filter(function(r){
 				return !r.isExpired();
 			});
-			console.log(self.name+" "+self.ringID+" there are this many attach requests: "+requesters.length);
+			//console.log(self.name+" "+self.ringID+" there are this many attach requests: "+requesters.length);
 			//check if there are requestors
 			requesters.forEach(
 				function(requester){
@@ -153,14 +162,14 @@ function Ring(name){
 				}
 			);
 			if(newRequests){
-				console.log("new Request For Permit Broadcast");
+				//console.log("new Request For Permit Broadcast");
 				//send out permit requests if necessary
 				self.deviceShadows.forEach(function(devShadow){
 					//send out permit requests if necessary
 					devShadow.requestForPermit();
 					//if just been sent out then don't broadcast
 				});
-			} else console.log("NO Request For Permit Broadcast");
+			} //else console.log("NO Request For Permit Broadcast");
 				//any permissions ready to send back?	
 		}
 	};
