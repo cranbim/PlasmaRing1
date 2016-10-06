@@ -6,6 +6,7 @@ var server=app.listen(4000);
 
 var nextID=10000;
 var nextRingID=0;
+var nextAttachRequest=0;
 var heartbeat=1000;
 
 var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
@@ -69,6 +70,7 @@ function beat(){
 	heartbeat++;
 	console.log("heartbeat "+heartbeat);
 	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
+	ring.run();
 }
 
 function Session(socket){ //class to hold session info
@@ -86,7 +88,7 @@ function Ring(name){
 	this.requesters=[];
 	this.joinRing=function(shadow){
 		this.deviceShadows.push(shadow);
-		console.log(this.name+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
+		console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
 		console.log(this.deviceShadows);
 	};
 	this.unjoinRing=function(id){
@@ -95,11 +97,13 @@ function Ring(name){
 		});
 		this.deviceShadows[i]=null;
 		this.deviceShadows.splice(i,1);
-		console.log(this.name+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
+		console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
 	};
 	
 	this.attachRequested=function(data){
-		console.log(this.name+this.ringID+" "+"Attachment to ring requested, "+data.id);
+		console.log(this.name+" "+this.ringID+" "+"Attachment to ring requested, "+data.id);
+		var ar=new AttachRequest(data.id);
+		this.requesters.push(ar);
 	};
 
 	this.attach=function(data){
@@ -108,6 +112,37 @@ function Ring(name){
 		return {start: s,
 						end:this.size};
 	};
+
+	this.run=function(){
+			console.log(this.name+" "+this.ringID+" running");
+			//check if there are requestors
+			//any new requestors?
+			//send out permit requests if necessary
+			//any permissions ready to send back?
+	};
+
+
+	function AttachRequest(devid){
+		var ttl=10000;
+		this.id=nextAttachRequest++;
+		this.requestingDev=devid;
+		this.timeRequested=Date.now();
+		this.expires=this.timeRequested+ttl;
+
+		this.isExpired=function(){
+			return Date.now()<this.expires();
+		};
+	}
+
+	function AttachGranted(){
+		var ttl=5000;
+		this.timeGranted=Date.now();
+		this.expires=this.timeGranted+ttl;
+
+		this.isExpired=function(){
+			return Date.now()<this.expires();
+		};
+	}
 }
 
 function DeviceShadow(session){
