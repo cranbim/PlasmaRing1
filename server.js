@@ -5,10 +5,11 @@ var app=express();
 var server=app.listen(4000);
 
 var nextID=10000;
+var nextRingID=0;
 var heartbeat=1000;
 
-var ring=new Ring(); //ring to monitor attached devices
-var unattached=new Ring(); //ring to monitor unattached devices
+var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
+var ring=new Ring("RING_01"); //ring to monitor attached devices
 var sessions=[];
 
 app.use(express.static('public'));
@@ -34,11 +35,15 @@ function newConnection(socket){
   socket.on('join',joiner);
   socket.on('unjoin',unjoiner);
   socket.on('blob',blobMsg);
-  socket.on('attach',unattached.attachRequested);
+  socket.on('attach',attacher);
   
   function blobMsg(data){
 			//console.log(data.x +' from '+socket.id);
 			socket.broadcast.emit('blob', data);
+  }
+
+  function attacher(data){
+  	ring.attachRequested(data);
   }
 
   function joiner(data){
@@ -73,14 +78,15 @@ function Session(socket){ //class to hold session info
 }
 
 
-function Ring(){
-	this.ringID=0;
+function Ring(name){
+	this.ringID=nextRingID++;
+	this.name=name;
 	this.size=0;
 	this.deviceShadows=[];
 	this.requesters=[];
 	this.joinRing=function(shadow){
 		this.deviceShadows.push(shadow);
-		console.log("new dev shadow joins ring, "+this.deviceShadows.length);
+		console.log(this.name+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
 		console.log(this.deviceShadows);
 	};
 	this.unjoinRing=function(id){
@@ -89,11 +95,11 @@ function Ring(){
 		});
 		this.deviceShadows[i]=null;
 		this.deviceShadows.splice(i,1);
-		console.log("unJoined device shadow: "+id+" "+this.deviceShadows.length);
+		console.log(this.name+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
 	};
 	
 	this.attachRequested=function(data){
-		console.log("Attachment to ring requested, "+data.id);
+		console.log(this.name+this.ringID+" "+"Attachment to ring requested, "+data.id);
 	};
 
 	this.attach=function(data){
