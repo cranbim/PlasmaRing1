@@ -80,12 +80,15 @@ function Session(socket){ //class to hold session info
 }
 
 
+
+
 function Ring(name){
 	this.ringID=nextRingID++;
 	this.name=name;
 	this.size=0;
 	this.deviceShadows=[];
 	this.requesters=[];
+	this.attachGrants=[];
 	this.joinRing=function(shadow){
 		this.deviceShadows.push(shadow);
 		console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
@@ -114,10 +117,32 @@ function Ring(name){
 	};
 
 	this.run=function(){
+		var newRequests=false;
 			console.log(this.name+" "+this.ringID+" running");
+			//remove any expired requests
+			this.requesters=this.requesters.filter(function(r){
+				return !r.isExpired();
+			});
+			console.log(this.name+" "+this.ringID+" there are this many attach requests: "+this.requesters.length);
 			//check if there are requestors
-			//any new requestors?
-			//send out permit requests if necessary
+			this.requesters.forEach(
+				function(requester){
+					//any new requestors?
+					if(!requester.requestBroadcastSent){
+						requester.requestBroadcastSent=true;
+						newRequests=true;
+					}
+				}
+			);
+			if(newRequests){
+				console.log("new Request For Permit Broadcast");
+				//send out permit requests if necessary
+				this.deviceShadows.forEach(function(devShadow){
+					//send out permit requests if necessary
+					devShadow.requestForPermit();
+					//if just been sent out then don't broadcast
+				});
+			} else console.log("NO Request For Permit Broadcast");
 			//any permissions ready to send back?
 	};
 
@@ -125,12 +150,13 @@ function Ring(name){
 	function AttachRequest(devid){
 		var ttl=10000;
 		this.id=nextAttachRequest++;
+		this.requestBroadcastSent=false;
 		this.requestingDev=devid;
 		this.timeRequested=Date.now();
 		this.expires=this.timeRequested+ttl;
 
 		this.isExpired=function(){
-			return Date.now()<this.expires();
+			return Date.now()>this.expires;
 		};
 	}
 
@@ -140,7 +166,7 @@ function Ring(name){
 		this.expires=this.timeGranted+ttl;
 
 		this.isExpired=function(){
-			return Date.now()<this.expires();
+			return Date.now()>this.expires;
 		};
 	}
 }
@@ -148,5 +174,10 @@ function Ring(name){
 function DeviceShadow(session){
 	this.session=session;
 	console.log("New device shadow "+this.session.id);
+
+	this.requestForPermit=function(){
+		console.log(this.session.id+" received request for attach permit. Pass to device");
+		this.socket.emit('rfpermit',{});
+	};
 }
 

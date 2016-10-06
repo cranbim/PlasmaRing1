@@ -27,11 +27,16 @@ function connected(){
   attachButton.mouseClicked(attachMe);
   socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
+  socket.on('rfpermit',requestForPermit);
 }
 
 function setID(data){
   id=data.id;
   console.log("My ID="+id);
+}
+
+function requestForPermit(){
+  console.log("received request for attach permit from ring");
 }
 
 function joinMe(){
