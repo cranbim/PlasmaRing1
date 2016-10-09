@@ -8,6 +8,7 @@ var nextID=10000;
 var nextRingID=0;
 var nextAttachRequest=0;
 var heartbeat=1000;
+var consoleSession;
 
 var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
 var ring=new Ring("RING_01"); //ring to monitor attached devices
@@ -38,6 +39,7 @@ function newConnection(socket){
   socket.on('blob',blobMsg);
   socket.on('attach',attacher);
   socket.on('permit',permitReceived);
+  socket.on('console',setConsole);
   
   function blobMsg(data){
 			//console.log(data.x +' from '+socket.id);
@@ -61,6 +63,13 @@ function newConnection(socket){
 		unattached.unjoinRing(data.id);
 	}
 
+	function setConsole(data){
+		var c=findSession(data.consoleid);
+		consoleSession=c;
+//		console.log(c.id+" "+c.socket.id);
+		console.log("Console identified as: "+consoleSession.id);
+	}
+
   function clientDisconnect(){
 		var i=sessions.forEach(function(sesh,index){
 			if(sesh.id==session.id) return index;
@@ -76,6 +85,60 @@ function beat(){
 	console.log("heartbeat "+heartbeat);
 	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
 	ring.run();
+	sendConsoleData();
+}
+
+function sendConsoleData(){
+	if(consoleSession){
+		console.log("Send console data");
+		consoleSession.socket.emit('consoleData',{
+			lobby: buildJSONLobby(),
+			ring: buildJSONRing()
+		});
+	} else {
+		console.log("Can't send console data, no console connected");
+	}
+}
+
+function findSession(devid){
+	return sessions.find(function(session){
+		return session.id===devid;
+	});
+}
+
+
+function buildJSONLobby(){
+	var lobbyData={};
+	var devices=[];
+	if(unattached){
+		unattached.deviceShadows.forEach(function(ud,i){
+			devices[i]={
+				connection: ud.session.id,
+				socket: ud.session.socket.id
+			};
+		});
+		lobbyData.name=unattached.name;
+		lobbyData.size=devices.length;
+		lobbyData.data=devices;
+	}
+	return lobbyData;	
+}
+
+function buildJSONRing(){
+	var ringData={};
+	var devices=[];
+	if(ring){
+		ring.deviceShadows.forEach(function(ud,i){
+			devices[i]={
+				connection: ud.session.id,
+				socket: ud.session.socket.id
+			};
+		});
+		ringData.name=ring.name;
+		ringData.size=devices.length;
+		ringData.data=devices;	
+	}
+	return ringData;
 }
 
 
@@ -117,6 +180,7 @@ function Ring(name){
 		return this.deviceShadows.find(function(ds){
 			return ds.session.id===devid;
 		});
+
 	};
 	
 	this.attachRequested=function(data){
@@ -155,9 +219,10 @@ function Ring(name){
 						if(self.deviceShadows.length===0){
 							//there are no other devices, so I can just join
 							attachToRing(requester.requestingDev);
+						} else { //the ring is not empty
+							requester.requestBroadcastSent=true;
+							newRequests=true;
 						}
-						requester.requestBroadcastSent=true;
-						newRequests=true;
 					}
 				}
 			);

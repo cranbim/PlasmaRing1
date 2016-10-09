@@ -3,13 +3,15 @@ var id;
 var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
-var button, attachButton, statusMessage;
+var button, attachButton, permitButton, statusMessage;
 
 function setup() {
   createCanvas(400,400);
   button = select('#join');
   attachButton = select('#attach');
   attachButton.hide();
+  permitButton = select('#permit');
+  permitButton.hide();
   statusMessage = select('#status');
   socket=io.connect('http://localhost:4000');
   socket.on('connect', connected);
@@ -35,6 +37,13 @@ function attachedToRing(data){
   console.log("Successfully attached to ring: "+data.ring);
   statusMessage.html('Attached to Ring');
   attachButton.html('detach');
+  permitButton.show();
+  permitButton.mouseClicked(permitAttacher);
+}
+
+function permitAttacher(){
+  console.log("Permit Attacher");
+  socket.emit('permit',{id:id});
 }
 
 function setID(data){
