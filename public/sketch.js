@@ -3,7 +3,7 @@ var id;
 var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
-var button, attachButton, permitButton, statusMessage;
+var button, attachButton, permitButton, statusMessage, idnum;
 
 function setup() {
   createCanvas(400,400);
@@ -13,6 +13,7 @@ function setup() {
   permitButton = select('#permit');
   permitButton.hide();
   statusMessage = select('#status');
+  idnum = select('#idnum');
   socket=io.connect('http://localhost:4000');
   socket.on('connect', connected);
   socket.on('id',setID);
@@ -48,6 +49,7 @@ function permitAttacher(){
 
 function setID(data){
   id=data.id;
+  idnum.html(id);
   console.log("My ID="+id);
 }
 

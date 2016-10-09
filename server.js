@@ -121,7 +121,7 @@ function buildJSONLobby(){
 		lobbyData.size=devices.length;
 		lobbyData.data=devices;
 	}
-	return lobbyData;	
+	return lobbyData;
 }
 
 function buildJSONRing(){
@@ -136,7 +136,7 @@ function buildJSONRing(){
 		});
 		ringData.name=ring.name;
 		ringData.size=devices.length;
-		ringData.data=devices;	
+		ringData.data=devices;
 	}
 	return ringData;
 }
