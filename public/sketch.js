@@ -4,6 +4,7 @@ var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
 var button, attachButton, permitButton, statusMessage, idnum;
+var offersList;
 
 function setup() {
   createCanvas(400,400);
@@ -32,6 +33,23 @@ function connected(){
   socket.on('heartbeat',beat);
   socket.on('rfpermit',requestForPermit);
   socket.on('attached',attachedToRing);
+  socket.on('offer',processOffer);
+}
+
+function processOffer(data){
+  //should really clean up and recreate this each time
+  console.log("Offer received, between: "+data.prev+","+data.next);
+  if(!offersList){
+    offersList=createElement('ul');
+  } else {
+    var offerString="Offer to attach between "+data.prev+" and "+data.next;
+    var li=createElement('li');
+    li.parent(offersList);
+    var el=createP(offerString);
+    var acceptOfferButton=createButton("accept");
+    li.child(el);
+    li.child(acceptOfferButton);
+  }
 }
 
 function attachedToRing(data){

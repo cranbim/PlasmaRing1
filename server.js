@@ -163,6 +163,7 @@ function Ring(name){
 	this.deviceShadows=[];
 	var requesters=[];
 	var attachGrants=[];
+	var attachOffers=[];
 
 	this.joinRing=function(shadow, next){
 		//this.deviceShadows.push(shadow);
@@ -247,6 +248,20 @@ function Ring(name){
 		}
 	};
 
+	function processAttachOffers(){
+		//remove any expired grants
+		this.attachOffers=this.attachOffers.filter(function(o){
+			return !o.isExpired();
+		});
+		this.attachOffers.forEach(function(offer){
+			if(!offer.offerSent){
+				var ds=self.findDevShadow(offer.devid);
+				ds.session.socket.emit('offer',{prev:offer.prevID, next:offer.nextID});
+				offer.offerSent=true;
+			}
+		});
+	}
+
 	function processAttachPermits(){
 		//remove any expired grants
 		this.attachGrants=this.attachGrants.filter(function(g){
@@ -270,18 +285,18 @@ function Ring(name){
 
 	
 
-	function oldattachToRing(devid){
-		console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid);
-		//find device shadow in lobby
-		var ds=unattached.findDevShadow(devid);
-		//assign device shadow to this ring
-		self.joinRing(ds);
-		//remove from lobby
-		unattached.unjoinRing(devid);
-		//notify the device
-		var s=ds.session.socket;
-		s.emit('attached',{ring: self.ringID});
-	}
+	// function oldattachToRing(devid){
+	// 	console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid);
+	// 	//find device shadow in lobby
+	// 	var ds=unattached.findDevShadow(devid);
+	// 	//assign device shadow to this ring
+	// 	self.joinRing(ds);
+	// 	//remove from lobby
+	// 	unattached.unjoinRing(devid);
+	// 	//notify the device
+	// 	var s=ds.session.socket;
+	// 	s.emit('attached',{ring: self.ringID});
+	// }
 
 	function attachToRing(devid, prev, next){
 		console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid+" twixt: "+prev+" and: "+next);
@@ -320,6 +335,20 @@ function Ring(name){
 		this.device=devid;
 		this.timeGranted=Date.now();
 		this.expires=this.timeGranted+ttl;
+
+		this.isExpired=function(){
+			return Date.now()>this.expires;
+		};
+	}
+
+	function AttachOffer(devid, prev, next){
+		var ttl=5000;
+		this.prevID=prev;
+		this.nextID=next;
+		this.device=devid;
+		this.timeGranted=Date.now();
+		this.expires=this.timeGranted+ttl;
+		this.offerSent=false;
 
 		this.isExpired=function(){
 			return Date.now()>this.expires;

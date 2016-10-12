@@ -29,7 +29,7 @@ function connected(data){
 }
 
 function consoleData(data){
-  console.log(data);
+  //console.log(data);
   var ld=data.lobby;
   var rd=data.ring;
 
