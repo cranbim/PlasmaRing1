@@ -29,7 +29,7 @@ function connected(data){
 }
 
 function consoleData(data){
-  //console.log(data);
+  console.log(data);
   var ld=data.lobby;
   var rd=data.ring;
 
@@ -37,9 +37,11 @@ function consoleData(data){
     var devString;
     if(lobbyUL) lobbyUL.remove();
     lobbyUL=createElement('ul');
+    var el=createElement('li',"something");
+    el.parent(lobbyUL);
     lobbyUL.parent(lobbyDiv);
     ld.data.forEach(function(dev,i){
-      devString=("00"+i).slice(-3)+" "+dev.connection+" "+dev.socket;
+      devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
       console.log(devString);
       var el=createElement('li',devString);
       el.parent(lobbyUL);
@@ -51,7 +53,7 @@ function consoleData(data){
     ringUL=createElement('ul');
     ringUL.parent(ringDiv);
     rd.data.forEach(function(dev,i){
-      devString=("00"+i).slice(-3)+" "+dev.connection+" "+dev.socket;
+      devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
       console.log(devString);
       var el=createElement('li',devString);
       el.parent(ringUL);
