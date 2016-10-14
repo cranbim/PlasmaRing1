@@ -39,17 +39,30 @@ function consoleData(data){
 
   if(ld.size>0){
     var devString;
-    if(lobbyUL) lobbyUL.remove();
-    lobbyUL=createElement('ul');
-    var el=createElement('li',"something");
-    el.parent(lobbyUL);
-    lobbyUL.parent(lobbyDiv);
+    if(!lobbyUL) {
+      lobbyUL=createElement('ul');
+      var el=createElement('li',"something");
+      el.parent(lobbyUL);
+      lobbyUL.parent(lobbyDiv);
+    }
+    var lobbyList=selectAll('li',lobbyUL);
     ld.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
+      if(lobbyList[i]){
+        lobbyList.html(devString);
+      } else {
+        var el=createElement('li',devString);
+        el.parent(lobbyUL);
+      }
       //console.log(devString);
-      var el=createElement('li',devString);
-      el.parent(lobbyUL);
-    }); 
+      //var el=createElement('li',devString);
+      //el.parent(lobbyUL);
+    });
+    if(lobbyList.length>ld.data.length){
+      for(var i=ld.data.length; i<lobbyList.length; i++){
+        lobbyList[i].html("empty now");
+      }
+    }
   }
   if(rd.size>0){
     var devString;
