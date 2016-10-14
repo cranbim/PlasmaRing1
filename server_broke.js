@@ -227,9 +227,6 @@ function Ring(name){
 			var newRequests=false;
 			//remove any expired requests
 			requesters=requesters.filter(function(r){
-				if(r.isExpired()){
-					console.log("requester"+r.id+" has expired");
-				}
 				return !r.isExpired();
 			});
 			//console.log(self.name+" "+self.ringID+" there are this many attach requests: "+requesters.length);
@@ -269,13 +266,9 @@ function Ring(name){
 			return !o.isExpired();
 		});
 		attachOffers.forEach(function(offer){
-			if(!offer.offerSent){ //send to all requesters
-				console.log("requesters "+requesters);
-				requesters.forEach(function(r,i){
-					var ds=self.findDevShadow(r.id);
-					console.log("shadow of requester "+i+" "+ds);
-					ds.session.socket.emit('offer',{id: offer.id, prev:offer.prevID, next:offer.nextID});
-				});
+			if(!offer.offerSent){
+				var ds=self.findDevShadow(offer.devid);
+				ds.session.socket.emit('offer',{id: offer.id, prev:offer.prevID, next:offer.nextID});
 				offer.offerSent=true;
 			}
 		});
@@ -284,7 +277,6 @@ function Ring(name){
 	
 	function processAttachGrants(){
 		//remove any expired grants
-		var o;
 		attachGrants=attachGrants.filter(function(g){
 			return !g.isExpired();
 		});
@@ -292,30 +284,29 @@ function Ring(name){
 		if(self.deviceShadows.length===1){
 			//if there is one permit
 			if(attachGrants.length>0){
-				o=new AttachOffer(
+				var o=new AttachOffer(
 				self.deviceShadows[0].session.id,
 				self.deviceShadows[0].session.id);
 				attachOffers.push(o);
-			} 
-		} else {
+			}
+		}
 
-			var granted=[];
-			//check for adjacent grants
-			attachGrants.forEach(function(grant){
-				granted.push(findDevRingPos(grant.device));
-			});
-			var p=granted.length-1;
-			for(var i=0; i<granted.length; i++){
-				var currPos=granted[i];
-				var prevPos=granted[p];
-				if(currPos-prevPos===1||
-					currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
-					//CREATE AN OFFER devid's not positions, which could change
-					o=new AttachOffer(
-						self.deviceShadows[prevPos].session.id,
-						self.deviceShadows[currPos].session.id);
-					attachOffers.push(o);
-				}
+		var granted=[];
+		//check for adjacent grants
+		attachGrants.forEach(function(grant){
+			granted.push(findDevRingPos(grant.device));
+		});
+		var p=granted.length-1;
+		for(var i=0; i<granted.length; i++){
+			var currPos=granted[i];
+			var prevPos=granted[p];
+			if(currPos-prevPos===1||
+				currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
+				//CREATE AN OFFER devid's not positions, which could change
+				var o=new AttachOffer(
+					self.deviceShadows[prevPos].session.id,
+					self.deviceShadows[currPos].session.id);
+				attachOffers.push(o);
 			}
 		}
 	}
