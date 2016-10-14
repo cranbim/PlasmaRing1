@@ -7,6 +7,7 @@ var server=app.listen(4000);
 var nextID=10000;
 var nextRingID=0;
 var nextAttachRequest=0;
+var nextAttachOffer=0;
 var heartbeat=1000;
 var consoleSession;
 
@@ -39,7 +40,12 @@ function newConnection(socket){
   socket.on('blob',blobMsg);
   socket.on('attach',attacher);
   socket.on('permit',permitReceived);
+  socket.on('offerAccepted',offerAccepted);
   socket.on('console',setConsole);
+
+  function offerAccepted(data){
+  	ring.offerAccepted(data);
+  }
   
   function blobMsg(data){
 			//console.log(data.x +' from '+socket.id);
@@ -185,7 +191,6 @@ function Ring(name){
 		return this.deviceShadows.find(function(ds){
 			return ds.session.id===devid;
 		});
-
 	};
 	
 	this.attachRequested=function(data){
@@ -207,10 +212,16 @@ function Ring(name){
 		}
 	};
 
+	this.offerAccepted=function(data){
+		console.log("Offer "+data.offer+" Accepted by "+data.device);
+	};
+
 	
 	this.run=function(){
 		//console.log(this.name+" "+this.ringID+" running");
 		processAttachRequests();
+		processAttachGrants();
+		processAttachOffers();
 
 		function processAttachRequests(){
 			var newRequests=false;
@@ -224,9 +235,10 @@ function Ring(name){
 				function(requester){
 					//any new requestors?
 					if(!requester.requestBroadcastSent){
-						if(true/*self.deviceShadows.length===0*/){
+						if(self.deviceShadows.length===0){
+							console.log("No existing devices so just join");
 							//there are no other devices, so I can just join
-							attachToRing(requester.requestingDev,0);
+							attachToRing(requester.requestingDev,0,0);
 							requester.requestBroadcastSent=true;
 						} else { //the ring is not empty
 							requester.requestBroadcastSent=true;
@@ -250,29 +262,48 @@ function Ring(name){
 
 	function processAttachOffers(){
 		//remove any expired grants
-		this.attachOffers=this.attachOffers.filter(function(o){
+		attachOffers=attachOffers.filter(function(o){
 			return !o.isExpired();
 		});
-		this.attachOffers.forEach(function(offer){
+		attachOffers.forEach(function(offer){
 			if(!offer.offerSent){
 				var ds=self.findDevShadow(offer.devid);
-				ds.session.socket.emit('offer',{prev:offer.prevID, next:offer.nextID});
+				ds.session.socket.emit('offer',{id: offer.id, prev:offer.prevID, next:offer.nextID});
 				offer.offerSent=true;
 			}
 		});
 	}
 
-	function processAttachPermits(){
+	
+	function processAttachGrants(){
 		//remove any expired grants
-		this.attachGrants=this.attachGrants.filter(function(g){
+		attachGrants=attachGrants.filter(function(g){
 			return !g.isExpired();
 		});
-		//check if we even need a grant
-		//only one device in the ring?
-		//if it matches the permit then we allow join
+		var granted=[];
+		//check for adjacent grants
+		attachGrants.forEach(function(grant){
+			granted.push(findDevRingPos(grant.device));
+		});
+		var p=granted.length-1;
+		for(var i=0; i<granted.length; i++){
+			var currPos=granted[i];
+			var prevPos=granted[p];
+			if(currPos-prevPos===1||
+				currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
+				//CREATE AN OFFER devid's not positions, which could change
+				var o=new AttachOffer(
+					self.deviceShadows[prevPos].session.id,
+					self.deviceShadows[currPos].session.id);
+			}
+		}
+		granted.forEach(function(ri,i){
+			if(ri-granted[p]===1) ;//do something
+			p=i;
+		});
 	}
 
-	function findDeviceInRing(devid){
+	function findDevRingPos(devid){
 		var index;
 		self.deviceShadows.find(function(ds,i){
 			if(ds.session.id===devid){
@@ -303,8 +334,10 @@ function Ring(name){
 		//find device shadow in lobby
 		var ds=unattached.findDevShadow(devid);
 		//find the prev and next indices
-		var prevIndex=findDeviceInRing(prev);
-		var nextIndex=findDeviceInRing(next);
+//		if(next===0 && prev===0){
+			var prevIndex=findDevRingPos(prev);
+			var nextIndex=findDevRingPos(next);
+//		}
 
 		//assign device shadow to this ring
 		self.joinRing(ds,nextIndex);
@@ -341,11 +374,11 @@ function Ring(name){
 		};
 	}
 
-	function AttachOffer(devid, prev, next){
+	function AttachOffer(prev, next){
 		var ttl=5000;
+		this.id=nextAttachOffer++;
 		this.prevID=prev;
 		this.nextID=next;
-		this.device=devid;
 		this.timeGranted=Date.now();
 		this.expires=this.timeGranted+ttl;
 		this.offerSent=false;

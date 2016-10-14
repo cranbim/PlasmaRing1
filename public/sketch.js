@@ -5,6 +5,7 @@ var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
 var button, attachButton, permitButton, statusMessage, idnum;
 var offersList;
+var offers=[];
 
 function setup() {
   createCanvas(400,400);
@@ -46,10 +47,29 @@ function processOffer(data){
     var li=createElement('li');
     li.parent(offersList);
     var el=createP(offerString);
-    var acceptOfferButton=createButton("accept");
+    var acceptOfferButton=createButton("accept offer");
     li.child(el);
     li.child(acceptOfferButton);
+    acceptOfferButton.mouseClicked(handleAcceptOffer);
+    var offerTemp={
+      id: data.id,
+      prev: data.prev,
+      next: data.next,
+      button: acceptOfferButton
+    };
+    offers.push(offerTemp);
   }
+}
+
+function handleAcceptOffer(){
+  var offer;
+  //find offer assocaited with the clicked button
+  offers.forEach(function(o){
+    if(o.button==this) offer=o;
+  });
+  //process clicked offer
+  o.button.html("Accepted");
+  socket.emit("offerAccepted",{offer:o.id, device:id});
 }
 
 function attachedToRing(data){
