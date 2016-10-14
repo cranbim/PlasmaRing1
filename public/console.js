@@ -5,7 +5,9 @@ var consoleid;
 var lobbyDiv;
 var lobbyUL;
 var ringDiv;
-var ringUL;
+var ringUL=null;
+var MetaDiv;
+var metaULreq, metaULgrant, metaULoffer;
 
 function setup() {
   noCanvas();
@@ -19,6 +21,7 @@ function setup() {
   });
   lobbyDiv=select('#lobbydevs');
   ringDiv=select('#ringdevs');
+  metaDiv=select('#metadata');
 }
 
 function connected(data){
@@ -32,6 +35,7 @@ function consoleData(data){
   //console.log(data);
   var ld=data.lobby;
   var rd=data.ring;
+  var md=data.ringMeta;
 
   if(ld.size>0){
     var devString;
@@ -42,25 +46,43 @@ function consoleData(data){
     lobbyUL.parent(lobbyDiv);
     ld.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
-      console.log(devString);
+      //console.log(devString);
       var el=createElement('li',devString);
       el.parent(lobbyUL);
     }); 
   }
   if(rd.size>0){
     var devString;
-    if(ringUL) ringUL.remove();
+    if(ringUL){ 
+      console.log("remove existing UL");
+      ringUL.remove();
+      ringUL=null;
+    }
     ringUL=createElement('ul');
     ringUL.parent(ringDiv);
     rd.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
-      console.log(devString);
+      //console.log(devString);
       var el=createElement('li',devString);
       el.parent(ringUL);
     });
-    
   }
-
+  // console.log("Ring Meta Data: ");
+   console.log(md);
+  if(true){
+    var devString;
+    if(metaULreq) metaULreq.remove();
+    metaULreq=createElement('ul');
+    metaULreq.parent(metaDiv);
+    var count=createP("number: "+md.requesters.length);
+    count.parent(metaDiv);
+    md.requesters.forEach(function(r,i){
+      devString=r.id+": "+r.device;
+      console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULreq);
+    });
+  }
 }
 
 function setID(data){

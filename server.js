@@ -44,7 +44,7 @@ function newConnection(socket){
   socket.on('console',setConsole);
 
   function offerAccepted(data){
-  	ring.offerAccepted(data);
+		ring.offerAccepted(data);
   }
   
   function blobMsg(data){
@@ -53,11 +53,11 @@ function newConnection(socket){
   }
 
   function attacher(data){
-  	ring.attachRequested(data);
+		ring.attachRequested(data);
   }
 
   function permitReceived(data){
-  	ring.permitReceived(data);
+		ring.permitReceived(data);
   }
 
   function joiner(data){
@@ -99,7 +99,8 @@ function sendConsoleData(){
 		console.log("Send console data");
 		consoleSession.socket.emit('consoleData',{
 			lobby: buildJSONLobby(),
-			ring: buildJSONRing()
+			ring: buildJSONRing(),
+			ringMeta: ring.buildJSONRingMeta()
 		});
 	} else {
 		console.log("Can't send console data, no console connected");
@@ -151,7 +152,6 @@ function buildJSONRing(){
 
 
 
-
 function Session(socket){ //class to hold session info
 	this.socket=socket;
 	this.id=nextID++; //increment the ID number
@@ -170,6 +170,42 @@ function Ring(name){
 	var requesters=[];
 	var attachGrants=[];
 	var attachOffers=[];
+
+	this.buildJSONRingMeta=function(){
+		var metaData={};
+		var reqs=[];
+		if(requesters){
+			requesters.forEach(function(r,i){
+				reqs[i]={
+					id: r.id,
+					device: r.devid
+				};
+			});
+		}
+		var grants=[];
+		if(attachGrants){
+			attachGrants.forEach(function(g,i){
+				grants[i]={
+					device: r.devid
+				};
+			});
+		}
+		var offers=[];
+		if(attachOffers){
+			attachOffers.forEach(function(o,i){
+				offers[i]={
+					id: o.id,
+					prev: o.prevID,
+					next: o.nextID
+				};
+			});
+		}
+		metaData.requesters=reqs;
+		metaData.grants=grants;
+		metaData.offers=offers;
+		return metaData;
+	}
+
 
 	this.joinRing=function(shadow, next){
 		//this.deviceShadows.push(shadow);
@@ -226,6 +262,7 @@ function Ring(name){
 		function processAttachRequests(){
 			var newRequests=false;
 			//remove any expired requests
+			//console.log("there are "+requesters.length+"requesters");
 			requesters=requesters.filter(function(r){
 				if(r.isExpired()){
 					console.log("requester"+r.id+" has expired");
