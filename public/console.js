@@ -32,12 +32,15 @@ function connected(data){
 }
 
 function consoleData(data){
-  //console.log(data);
+  console.log(data);
   var ld=data.lobby;
   var rd=data.ring;
   var md=data.ringMeta;
 
-  if(ld.size>0){
+  //var lobbyList=selectAll('li',lobbyUL);
+  //lobbyList.forEach(function(){});
+
+  if(true){
     var devString;
     if(!lobbyUL) {
       lobbyUL=createElement('ul');
@@ -46,33 +49,27 @@ function consoleData(data){
       lobbyUL.parent(lobbyDiv);
     }
     var lobbyList=selectAll('li',lobbyUL);
+    lobbyList.forEach(function(li){
+      li.remove();
+    });
     ld.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
-      if(lobbyList[i]){
-        lobbyList.html(devString);
-      } else {
-        var el=createElement('li',devString);
-        el.parent(lobbyUL);
-      }
-      //console.log(devString);
-      //var el=createElement('li',devString);
-      //el.parent(lobbyUL);
+      var el=createElement('li',devString);
+      el.parent(lobbyUL);
     });
-    if(lobbyList.length>ld.data.length){
-      for(var i=ld.data.length; i<lobbyList.length; i++){
-        lobbyList[i].html("empty now");
-      }
-    }
   }
-  if(rd.size>0){
+  if(true){
     var devString;
-    if(ringUL){ 
-      console.log("remove existing UL");
-      ringUL.remove();
-      ringUL=null;
+    if(!ringUL){ 
+      ringUL=createElement('ul');
+      var el=createElement('li',"something");
+      el.parent(ringUL);
+      ringUL.parent(ringDiv);
     }
-    ringUL=createElement('ul');
-    ringUL.parent(ringDiv);
+    var ringList=selectAll('li',ringUL);
+    ringList.forEach(function(li){
+      li.remove();
+    });
     rd.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
       //console.log(devString);
@@ -81,19 +78,69 @@ function consoleData(data){
     });
   }
   // console.log("Ring Meta Data: ");
-   console.log(md);
+   //console.log(md);
   if(true){
     var devString;
-    if(metaULreq) metaULreq.remove();
-    metaULreq=createElement('ul');
-    metaULreq.parent(metaDiv);
-    var count=createP("number: "+md.requesters.length);
-    count.parent(metaDiv);
+    if(!metaULreq){
+      metaULreq=createElement('ul');
+      metaULreq.parent(metaDiv);
+    }
+    var count=select('p',metaULreq);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULreq);
+    } 
+    count.html("number: "+md.requesters.length);
+    var metaReqList=selectAll('li',metaULreq);
+    metaReqList.forEach(function(li){
+      li.remove();
+    });
     md.requesters.forEach(function(r,i){
       devString=r.id+": "+r.device;
-      console.log(devString);
+      //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULreq);
+    });
+
+    if(!metaULgrant){
+      metaULgrant=createElement('ul');
+      metaULgrant.parent(metaDiv);
+    }
+    var count=select('p',metaULgrant);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULgrant);
+    } 
+    count.html("number: "+md.grants.length);
+    var metaGrantList=selectAll('li',metaULgrant);
+    metaGrantList.forEach(function(li){
+      li.remove();
+    });
+    md.grants.forEach(function(g,i){
+      devString=i+": "+g.device;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULgrant);
+    });
+    if(!metaULoffer){
+      metaULoffer=createElement('ul');
+      metaULoffer.parent(metaDiv);
+    }
+    var count=select('p',metaULoffer);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULoffer);
+    } 
+    count.html("number: "+md.offers.length);
+    var metaOfferList=selectAll('li',metaULoffer);
+    metaOfferList.forEach(function(li){
+      li.remove();
+    });
+    md.offers.forEach(function(o,i){
+      devString=o.id+", prev:"+o.prev+", next:"+o.next;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULoffer);
     });
   }
 }
