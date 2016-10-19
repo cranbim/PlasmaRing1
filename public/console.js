@@ -5,7 +5,9 @@ var consoleid;
 var lobbyDiv;
 var lobbyUL;
 var ringDiv;
-var ringUL;
+var ringUL=null;
+var MetaDiv;
+var metaULreq, metaULgrant, metaULoffer;
 
 function setup() {
   noCanvas();
@@ -19,6 +21,7 @@ function setup() {
   });
   lobbyDiv=select('#lobbydevs');
   ringDiv=select('#ringdevs');
+  metaDiv=select('#metadata');
 }
 
 function connected(data){
@@ -29,38 +32,117 @@ function connected(data){
 }
 
 function consoleData(data){
-  //console.log(data);
+  console.log(data);
   var ld=data.lobby;
   var rd=data.ring;
+  var md=data.ringMeta;
 
-  if(ld.size>0){
+  //var lobbyList=selectAll('li',lobbyUL);
+  //lobbyList.forEach(function(){});
+
+  if(true){
     var devString;
-    if(lobbyUL) lobbyUL.remove();
-    lobbyUL=createElement('ul');
-    var el=createElement('li',"something");
-    el.parent(lobbyUL);
-    lobbyUL.parent(lobbyDiv);
+    if(!lobbyUL) {
+      lobbyUL=createElement('ul');
+      var el=createElement('li',"something");
+      el.parent(lobbyUL);
+      lobbyUL.parent(lobbyDiv);
+    }
+    var lobbyList=selectAll('li',lobbyUL);
+    lobbyList.forEach(function(li){
+      li.remove();
+    });
     ld.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
-      console.log(devString);
       var el=createElement('li',devString);
       el.parent(lobbyUL);
-    }); 
+    });
   }
-  if(rd.size>0){
+  if(true){
     var devString;
-    if(ringUL) ringUL.remove();
-    ringUL=createElement('ul');
-    ringUL.parent(ringDiv);
+    if(!ringUL){ 
+      ringUL=createElement('ul');
+      var el=createElement('li',"something");
+      el.parent(ringUL);
+      ringUL.parent(ringDiv);
+    }
+    var ringList=selectAll('li',ringUL);
+    ringList.forEach(function(li){
+      li.remove();
+    });
     rd.data.forEach(function(dev,i){
       devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
-      console.log(devString);
+      //console.log(devString);
       var el=createElement('li',devString);
       el.parent(ringUL);
     });
-    
   }
+  // console.log("Ring Meta Data: ");
+   //console.log(md);
+  if(true){
+    var devString;
+    if(!metaULreq){
+      metaULreq=createElement('ul');
+      metaULreq.parent(metaDiv);
+    }
+    var count=select('p',metaULreq);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULreq);
+    } 
+    count.html("number: "+md.requesters.length);
+    var metaReqList=selectAll('li',metaULreq);
+    metaReqList.forEach(function(li){
+      li.remove();
+    });
+    md.requesters.forEach(function(r,i){
+      devString=r.id+": "+r.device;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULreq);
+    });
 
+    if(!metaULgrant){
+      metaULgrant=createElement('ul');
+      metaULgrant.parent(metaDiv);
+    }
+    var count=select('p',metaULgrant);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULgrant);
+    } 
+    count.html("number: "+md.grants.length);
+    var metaGrantList=selectAll('li',metaULgrant);
+    metaGrantList.forEach(function(li){
+      li.remove();
+    });
+    md.grants.forEach(function(g,i){
+      devString=i+": "+g.device;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULgrant);
+    });
+    if(!metaULoffer){
+      metaULoffer=createElement('ul');
+      metaULoffer.parent(metaDiv);
+    }
+    var count=select('p',metaULoffer);
+    if(!count) {
+      count=createP("");
+      count.parent(metaULoffer);
+    } 
+    count.html("number: "+md.offers.length);
+    var metaOfferList=selectAll('li',metaULoffer);
+    metaOfferList.forEach(function(li){
+      li.remove();
+    });
+    md.offers.forEach(function(o,i){
+      devString=o.id+", prev:"+o.prev+", next:"+o.next;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaULoffer);
+    });
+  }
 }
 
 function setID(data){

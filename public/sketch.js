@@ -62,12 +62,18 @@ function processOffer(data){
 }
 
 function handleAcceptOffer(){
+  console.log(offers);
   var offer;
   //find offer assocaited with the clicked button
   offers.forEach(function(o){
-    if(o.button==this) offer=o;
+    if(o.button==this) {
+      offer=o;
+      console.log(offer);
+    }
   });
   //process clicked offer
+      console.log(offer);
+
   o.button.html("Accepted");
   socket.emit("offerAccepted",{offer:o.id, device:id});
 }

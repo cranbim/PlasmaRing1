@@ -343,31 +343,6 @@ function Ring(name){
 		if(self.deviceShadows.length===1){
 			//if there is one permit
 			if(attachGrants.length>0){
-<<<<<<< HEAD
-				var o=new AttachOffer(
-				self.deviceShadows[0].session.id,
-				self.deviceShadows[0].session.id);
-				attachOffers.push(o);
-			}
-		}
-
-		var granted=[];
-		//check for adjacent grants
-		attachGrants.forEach(function(grant){
-			granted.push(findDevRingPos(grant.device));
-		});
-		var p=granted.length-1;
-		for(var i=0; i<granted.length; i++){
-			var currPos=granted[i];
-			var prevPos=granted[p];
-			if(currPos-prevPos===1||
-				currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
-				//CREATE AN OFFER devid's not positions, which could change
-				var o=new AttachOffer(
-					self.deviceShadows[prevPos].session.id,
-					self.deviceShadows[currPos].session.id);
-				attachOffers.push(o);
-=======
 				if(!checkOfferExists(self.deviceShadows[0].session.id,self.deviceShadows[0].session.id)){
 					o=new AttachOffer(
 					self.deviceShadows[0].session.id,
@@ -397,7 +372,6 @@ function Ring(name){
 						self.deviceShadows[currPos].session.id);
 					attachOffers.push(o);
 				}
->>>>>>> Server-permits
 			}
 		}
 	}
