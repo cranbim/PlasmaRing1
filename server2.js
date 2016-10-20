@@ -1,259 +1,259 @@
-var express = require('express');
+// var express = require('express');
 
-var app=express();
+// var app=express();
 
-var server=app.listen(4000);
+// var server=app.listen(4000);
 
-var nextID=10000;
-var nextRingID=0;
-var nextAttachRequest=0;
-var nextAttachOffer=0;
-var heartbeat=1000;
-var consoleSession;
+// var nextID=10000;
+// var nextRingID=0;
+// var nextAttachRequest=0;
+// var nextAttachOffer=0;
+// var heartbeat=1000;
+// var consoleSession;
 
-var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
-var ring=new Ring("RING_01"); //ring to monitor attached devices
-var sessions=[];
+// var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
+// var ring=new Ring("RING_01"); //ring to monitor attached devices
+// var sessions=[];
 
-app.use(express.static('public'));
+// app.use(express.static('public'));
 
-console.log("The Plasma Ring Serevr is running");
-console.log("Listening on port:4000");
+// console.log("The Plasma Ring Serevr is running");
+// console.log("Listening on port:4000");
 
-var socket = require('socket.io');
+// var socket = require('socket.io');
 
-var io=socket(server);
+// var io=socket(server);
 
-io.sockets.on('connection', newConnection);
+// io.sockets.on('connection', newConnection);
 
-var h=setInterval(beat,1000);//set one second heartbeat
+// var h=setInterval(beat,1000);//set one second heartbeat
 
-function newConnection(socket){
-  var session=new Session(socket);
-  sessions.push(session);
-  console.log("New connection, session:"+session.id+" socket:"+socket.id);
-  console.log("Num sessions:"+sessions.length);
-  //socket.on('mouse', mouseMsg);
-  socket.on('disconnect', clientDisconnect);
-  socket.on('join',joiner);
-  socket.on('unjoin',unjoiner);
-  socket.on('blob',blobMsg);
-  socket.on('attach',attacher);
-  socket.on('permit',permitReceived);
-  socket.on('offerAccepted',offerAccepted);
-  socket.on('console',setConsole);
+// function newConnection(socket){
+//   var session=new Session(socket);
+//   sessions.push(session);
+//   console.log("New connection, session:"+session.id+" socket:"+socket.id);
+//   console.log("Num sessions:"+sessions.length);
+//   //socket.on('mouse', mouseMsg);
+//   socket.on('disconnect', clientDisconnect);
+//   socket.on('join',joiner);
+//   socket.on('unjoin',unjoiner);
+//   socket.on('blob',blobMsg);
+//   socket.on('attach',attacher);
+//   socket.on('permit',permitReceived);
+//   socket.on('offerAccepted',offerAccepted);
+//   socket.on('console',setConsole);
 
-  function offerAccepted(data){
-		ring.offerAccepted(data);
-  }
+//   function offerAccepted(data){
+// 		ring.offerAccepted(data);
+//   }
   
-  function blobMsg(data){
-			//console.log(data.x +' from '+socket.id);
-			socket.broadcast.emit('blob', data);
-  }
+//   function blobMsg(data){
+// 			//console.log(data.x +' from '+socket.id);
+// 			socket.broadcast.emit('blob', data);
+//   }
 
-  function attacher(data){
-		ring.attachRequested(data);
-  }
+//   function attacher(data){
+// 		ring.attachRequested(data);
+//   }
 
-  function permitReceived(data){
-		ring.permitReceived(data);
-  }
+//   function permitReceived(data){
+// 		ring.permitReceived(data);
+//   }
 
-  function joiner(data){
-		var newUnAttached=new DeviceShadow(session);
-		unattached.joinRing(newUnAttached);
-	}
+//   function joiner(data){
+// 		var newUnAttached=new DeviceShadow(session);
+// 		unattached.joinRing(newUnAttached);
+// 	}
 
-	function unjoiner(data){
-		unattached.unjoinRing(data.id);
-	}
+// 	function unjoiner(data){
+// 		unattached.unjoinRing(data.id);
+// 	}
 
-	function setConsole(data){
-		var c=findSession(data.consoleid);
-		consoleSession=c;
-//		console.log(c.id+" "+c.socket.id);
-		console.log("Console identified as: "+consoleSession.id);
-	}
+// 	function setConsole(data){
+// 		var c=findSession(data.consoleid);
+// 		consoleSession=c;
+// //		console.log(c.id+" "+c.socket.id);
+// 		console.log("Console identified as: "+consoleSession.id);
+// 	}
 
-  function clientDisconnect(){
-		var i=sessions.forEach(function(sesh,index){
-			if(sesh.id==session.id) return index;
-		});
-		sessions.splice(i,1);
-		console.log("Removed disconnected session: "+session.id+" socket:"+session.socket.id);
-		console.log("Num sessions:"+sessions.length);
-	}
-}
+//   function clientDisconnect(){
+// 		var i=sessions.forEach(function(sesh,index){
+// 			if(sesh.id==session.id) return index;
+// 		});
+// 		sessions.splice(i,1);
+// 		console.log("Removed disconnected session: "+session.id+" socket:"+session.socket.id);
+// 		console.log("Num sessions:"+sessions.length);
+// 	}
+// }
 
-function beat(){
-	heartbeat++;
-	console.log("heartbeat "+heartbeat);
-	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
-	ring.run();
-	sendConsoleData();
-}
+// function beat(){
+// 	heartbeat++;
+// 	console.log("heartbeat "+heartbeat);
+// 	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
+// 	ring.run();
+// 	sendConsoleData();
+// }
 
-function sendConsoleData(){
-	if(consoleSession){
-		console.log("Send console data");
-		consoleSession.socket.emit('consoleData',{
-			lobby: buildJSONLobby(),
-			ring: buildJSONRing(),
-			ringMeta: ring.buildJSONRingMeta()
-		});
-	} else {
-		console.log("Can't send console data, no console connected");
-	}
-}
+// function sendConsoleData(){
+// 	if(consoleSession){
+// 		console.log("Send console data");
+// 		consoleSession.socket.emit('consoleData',{
+// 			lobby: buildJSONLobby(),
+// 			ring: buildJSONRing(),
+// 			ringMeta: ring.buildJSONRingMeta()
+// 		});
+// 	} else {
+// 		console.log("Can't send console data, no console connected");
+// 	}
+// }
 
-function findSession(devid){
-	return sessions.find(function(session){
-		return session.id===devid;
-	});
-}
-
-
-function buildJSONLobby(){
-	var lobbyData={};
-	var devices=[];
-	if(unattached){
-		unattached.deviceShadows.forEach(function(ud,i){
-			devices[i]={
-				position: i,
-				connection: ud.session.id,
-				socket: ud.session.socket.id
-			};
-		});
-		lobbyData.name=unattached.name;
-		lobbyData.size=devices.length;
-		lobbyData.data=devices;
-	}
-	return lobbyData;
-}
-
-function buildJSONRing(){
-	var ringData={};
-	var devices=[];
-	if(ring){
-		ring.deviceShadows.forEach(function(ud,i){
-			devices[i]={
-				position: i,
-				connection: ud.session.id,
-				socket: ud.session.socket.id
-			};
-		});
-		ringData.name=ring.name;
-		ringData.size=devices.length;
-		ringData.data=devices;
-	}
-	return ringData;
-}
+// function findSession(devid){
+// 	return sessions.find(function(session){
+// 		return session.id===devid;
+// 	});
+// }
 
 
+// function buildJSONLobby(){
+// 	var lobbyData={};
+// 	var devices=[];
+// 	if(unattached){
+// 		unattached.deviceShadows.forEach(function(ud,i){
+// 			devices[i]={
+// 				position: i,
+// 				connection: ud.session.id,
+// 				socket: ud.session.socket.id
+// 			};
+// 		});
+// 		lobbyData.name=unattached.name;
+// 		lobbyData.size=devices.length;
+// 		lobbyData.data=devices;
+// 	}
+// 	return lobbyData;
+// }
 
-function Session(socket){ //class to hold session info
-	this.socket=socket;
-	this.id=nextID++; //increment the ID number
-	socket.emit('id',{id:this.id});
-}
+// function buildJSONRing(){
+// 	var ringData={};
+// 	var devices=[];
+// 	if(ring){
+// 		ring.deviceShadows.forEach(function(ud,i){
+// 			devices[i]={
+// 				position: i,
+// 				connection: ud.session.id,
+// 				socket: ud.session.socket.id
+// 			};
+// 		});
+// 		ringData.name=ring.name;
+// 		ringData.size=devices.length;
+// 		ringData.data=devices;
+// 	}
+// 	return ringData;
+// }
+
+
+
+// function Session(socket){ //class to hold session info
+// 	this.socket=socket;
+// 	this.id=nextID++; //increment the ID number
+// 	socket.emit('id',{id:this.id});
+// }
 
 
 
 
 function Ring(name){
-	var self=this;
-	this.ringID=nextRingID++;
-	this.name=name;
-	this.size=0;
-	this.deviceShadows=[];
-	var requesters=[];
-	var attachGrants=[];
-	var attachOffers=[];
+	// var self=this;
+	// this.ringID=nextRingID++;
+	// this.name=name;
+	// this.size=0;
+	// this.deviceShadows=[];
+	// var requesters=[];
+	// var attachGrants=[];
+	// var attachOffers=[];
 
-	this.buildJSONRingMeta=function(){
-		var metaData={};
-		var reqs=[];
-		if(requesters){
-			requesters.forEach(function(r,i){
-				reqs[i]={
-					id: r.id,
-					device: r.devid
-				};
-			});
-		}
-		var grants=[];
-		if(attachGrants){
-			attachGrants.forEach(function(g,i){
-				grants[i]={
-					device: g.devid
-				};
-			});
-		}
-		var offers=[];
-		if(attachOffers){
-			attachOffers.forEach(function(o,i){
-				offers[i]={
-					id: o.id,
-					prev: o.prevID,
-					next: o.nextID
-				};
-			});
-		}
-		metaData.requesters=reqs;
-		metaData.grants=grants;
-		metaData.offers=offers;
-		return metaData;
-	}
+	// this.buildJSONRingMeta=function(){
+	// 	var metaData={};
+	// 	var reqs=[];
+	// 	if(requesters){
+	// 		requesters.forEach(function(r,i){
+	// 			reqs[i]={
+	// 				id: r.id,
+	// 				device: r.devid
+	// 			};
+	// 		});
+	// 	}
+	// 	var grants=[];
+	// 	if(attachGrants){
+	// 		attachGrants.forEach(function(g,i){
+	// 			grants[i]={
+	// 				device: g.devid
+	// 			};
+	// 		});
+	// 	}
+	// 	var offers=[];
+	// 	if(attachOffers){
+	// 		attachOffers.forEach(function(o,i){
+	// 			offers[i]={
+	// 				id: o.id,
+	// 				prev: o.prevID,
+	// 				next: o.nextID
+	// 			};
+	// 		});
+	// 	}
+	// 	metaData.requesters=reqs;
+	// 	metaData.grants=grants;
+	// 	metaData.offers=offers;
+	// 	return metaData;
+	// }
 
 
-	this.joinRing=function(shadow, next){
-		//this.deviceShadows.push(shadow);
-		this.deviceShadows.splice(next,0,shadow);
-		console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
-		console.log(this.deviceShadows);
-	};
+	// this.joinRing=function(shadow, next){
+	// 	//this.deviceShadows.push(shadow);
+	// 	this.deviceShadows.splice(next,0,shadow);
+	// 	console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.deviceShadows.length);
+	// 	console.log(this.deviceShadows);
+	// };
 
-	this.unjoinRing=function(id){
-		var i=this.deviceShadows.forEach(function(ds,index){
-			if(ds.session.id==id) return index;
-		});
-		this.deviceShadows[i]=null;
-		this.deviceShadows.splice(i,1);
-		console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
-	};
+	// this.unjoinRing=function(id){
+	// 	var i=this.deviceShadows.forEach(function(ds,index){
+	// 		if(ds.session.id==id) return index;
+	// 	});
+	// 	this.deviceShadows[i]=null;
+	// 	this.deviceShadows.splice(i,1);
+	// 	console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
+	// };
 
-	this.findDevShadow=function(devid){
-		var dev=this.deviceShadows.find(function(ds){
-			console.log("findDevShadow: "+ds.session.id+" "+devid);
-			return ds.session.id===devid;
-		});
-		console.log(dev);
-		return dev;
-	};
+	// this.findDevShadow=function(devid){
+	// 	var dev=this.deviceShadows.find(function(ds){
+	// 		console.log("findDevShadow: "+ds.session.id+" "+devid);
+	// 		return ds.session.id===devid;
+	// 	});
+	// 	console.log(dev);
+	// 	return dev;
+	// };
 	
-	this.attachRequested=function(data){
-		console.log(this.name+" "+this.ringID+" "+"Attachment to ring requested, "+data.id);
-		var ar=new AttachRequest(data.id);
-		requesters.push(ar);
-	};
+	// this.attachRequested=function(data){
+	// 	console.log(this.name+" "+this.ringID+" "+"Attachment to ring requested, "+data.id);
+	// 	var ar=new AttachRequest(data.id);
+	// 	requesters.push(ar);
+	// };
 
-	this.permitReceived=function(data){
-		console.log("Permit to attach received from: "+data.id);
-		if(!attachGrants.some(function(grant){
-			return grant.devid==data.id;
-		})){
-			console.log("new permit from this device");
-			var ag=new AttachGrant(data.id);
-			attachGrants.push(ag);
-		} else{
-			console.log("We've got a permit from this device already");
-		}
-	};
+	// this.permitReceived=function(data){
+	// 	console.log("Permit to attach received from: "+data.id);
+	// 	if(!attachGrants.some(function(grant){
+	// 		return grant.devid==data.id;
+	// 	})){
+	// 		console.log("new permit from this device");
+	// 		var ag=new AttachGrant(data.id);
+	// 		attachGrants.push(ag);
+	// 	} else{
+	// 		console.log("We've got a permit from this device already");
+	// 	}
+	// };
 
-	this.offerAccepted=function(data){
-		console.log("Offer "+data.offer+" Accepted by "+data.device);
-	};
+	// this.offerAccepted=function(data){
+	// 	console.log("Offer "+data.offer+" Accepted by "+data.device);
+	// };
 
 	
 	this.run=function(){
@@ -305,6 +305,7 @@ function Ring(name){
 
 	function processAttachOffers(){
 		//remove any expired grants
+		offers.checkForExpired();
 		attachOffers=attachOffers.filter(function(o){
 			return !o.isExpired();
 		});
@@ -377,16 +378,16 @@ function Ring(name){
 	}
 	};
 
-	function findDevRingPos(devid){
-		var index;
-		self.deviceShadows.find(function(ds,i){
-			if(ds.session.id===devid){
-				index=i;
-				return true;
-			}
-		});
-		return index;
-	}
+	// function findDevRingPos(devid){
+	// 	var index;
+	// 	self.deviceShadows.find(function(ds,i){
+	// 		if(ds.session.id===devid){
+	// 			index=i;
+	// 			return true;
+	// 		}
+	// 	});
+	// 	return index;
+	// }
 
 
 
@@ -423,53 +424,54 @@ function Ring(name){
 	}
 
 	
-	function AttachRequest(devid){
-		var ttl=10000;
-		this.id=nextAttachRequest++;
-		this.devid=devid;
-		this.requestBroadcastSent=false;
-		this.requestingDev=devid;
-		this.timeRequested=Date.now();
-		this.expires=this.timeRequested+ttl;
+	// function AttachRequest(devid){
+	// 	var ttl=10000;
+	// 	this.id=nextAttachRequest++;
+	// 	this.devid=devid;
+	// 	this.requestBroadcastSent=false;
+	// 	this.requestingDev=devid;
+	// 	this.timeRequested=Date.now();
+	// 	this.expires=this.timeRequested+ttl;
 
-		this.isExpired=function(){
-			return Date.now()>this.expires;
-		};
-	}
+	// 	this.isExpired=function(){
+	// 		return Date.now()>this.expires;
+	// 	};
+	// }
 
-	function AttachGrant(devid){
-		var ttl=5000;
-		this.device=devid;
-		this.timeGranted=Date.now();
-		this.expires=this.timeGranted+ttl;
+	// function AttachGrant(devid){
+	// 	var ttl=5000;
+	// 	this.device=devid;
+	// 	this.timeGranted=Date.now();
+	// 	this.expires=this.timeGranted+ttl;
 
-		this.isExpired=function(){
-			return Date.now()>this.expires;
-		};
-	}
+	// 	this.isExpired=function(){
+	// 		return Date.now()>this.expires;
+	// 	};
+	// }
 
-	function AttachOffer(prev, next){
-		var ttl=5000;
-		this.id=nextAttachOffer++;
-		this.prevID=prev;
-		this.nextID=next;
-		this.timeGranted=Date.now();
-		this.expires=this.timeGranted+ttl;
-		this.offerSent=false;
+	// function AttachOffer(prev, next){
+	// 	var ttl=5000;
+	// 	this.id=nextAttachOffer++;
+	// 	this.prevID=prev;
+	// 	this.nextID=next;
+	// 	this.timeGranted=Date.now();
+	// 	this.expires=this.timeGranted+ttl;
+	// 	this.offerSent=false;
 
-		this.isExpired=function(){
-			return Date.now()>this.expires;
-		};
-	}
+	// 	this.isExpired=function(){
+	// 		return Date.now()>this.expires;
+	// 	};
+	// }
 }
 
-function DeviceShadow(session){
-	this.session=session;
-	console.log("New device shadow "+this.session.id);
+// function DeviceShadow(session){
+// 	this.session=session;
+// 	console.log("New device shadow "+this.session.id);
 
-	this.requestForPermit=function(){
-		console.log(this.session.id+" received request for attach permit. Pass to device");
-		this.session.socket.emit('rfpermit',{});
-	};
-}
+// 	this.requestForPermit=function(){
+// 		console.log(this.session.id+" received request for attach permit. Pass to device");
+// 		this.session.socket.emit('rfpermit',{});
+// 	};
+// }
+
 
