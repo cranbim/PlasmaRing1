@@ -118,17 +118,18 @@ function Ring(name){
 		for(var i=0; i<granted.length; i++){
 			var currPos=granted[i];
 			var prevPos=granted[p];
+			p=i;
 			console.log("Check adjacency "+currPos+"-"+prevPos+"="+currPos-prevPos+", "+self.deviceShadows.length-1);
 			if(currPos-prevPos===1||
 				currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
 				//check that an active offer does not exist already
-				var p=self.deviceShadows[prevPos].session.id;
-				var n=self.deviceShadows[currPos].session.id;
+				var pv=self.deviceShadows[prevPos].session.id;
+				var nx=self.deviceShadows[currPos].session.id;
 				//CREATE AN OFFER devid's not positions, which could change
-				if(offers.offerExists(p,n)){
-					console.log("Offer "+p+" "+n+" exists already");
+				if(offers.offerExists(pv,nx)){
+					console.log("Offer "+pv+" "+nx+" exists already");
 				} else {
-					var o=offers.newOffer(p,n);
+					var o=offers.newOffer(pv,nx);
 					//send offer to requester and to offering devices.
 					//send offer notice to prev, next and assigned requester
 					var r=requesters.assignOffer(o);
@@ -146,6 +147,8 @@ function Ring(name){
 		//how to track who has had an offer?
 		//find next unassigned requester
 		//send an offer
+		//flash the client devices (TTL?)
+		//and then what?
 	}
 
 	
