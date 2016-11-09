@@ -71,7 +71,7 @@ function consoleData(data){
       li.remove();
     });
     rd.data.forEach(function(dev,i){
-      devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
+      devString=("00"+dev.position).slice(-2)+" "+dev.connection+" "+dev.socket;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(ringUL);
@@ -83,20 +83,20 @@ function consoleData(data){
     var devString;
     if(!metaULreq){
       metaULreq=createElement('ul');
-      metaULreq.parent(metaDiv);
+      metaULreq.parent(metaDiv);ß
     }
     var count=select('p',metaULreq);
     if(!count) {
       count=createP("");
       count.parent(metaULreq);
     } 
-    count.html("number: "+md.requesters.length);
+    count.html("Attach Requests #: "+md.requesters.length);
     var metaReqList=selectAll('li',metaULreq);
     metaReqList.forEach(function(li){
       li.remove();
     });
     md.requesters.forEach(function(r,i){
-      devString=r.id+": "+r.device;
+      devString=r.id+": "+r.device+" , "+r.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULreq);
@@ -111,13 +111,13 @@ function consoleData(data){
       count=createP("");
       count.parent(metaULgrant);
     } 
-    count.html("number: "+md.grants.length);
+    count.html("Attach Grants #: "+md.grants.length);
     var metaGrantList=selectAll('li',metaULgrant);
     metaGrantList.forEach(function(li){
       li.remove();
     });
     md.grants.forEach(function(g,i){
-      devString=i+": "+g.device;
+      devString=i+": "+g.device+" , "+g.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULgrant);
@@ -131,13 +131,13 @@ function consoleData(data){
       count=createP("");
       count.parent(metaULoffer);
     } 
-    count.html("number: "+md.offers.length);
+    count.html("Attach Offers #: "+md.offers.length);
     var metaOfferList=selectAll('li',metaULoffer);
     metaOfferList.forEach(function(li){
       li.remove();
     });
     md.offers.forEach(function(o,i){
-      devString=o.id+", prev:"+o.prev+", next:"+o.next;
+      devString=o.id+", prev:"+o.prev+", next:"+o.next+", active:"+o.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULoffer);

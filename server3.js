@@ -1,4 +1,7 @@
 var express = require('express');
+var ringMod= require('./ring.js');
+
+//var newRing=new testRing.Ring();
 
 var app=express();
 
@@ -11,8 +14,9 @@ var nextAttachOffer=0;
 var heartbeat=1000;
 var consoleSession;
 
-var unattached=new Ring("LOBBY"); //ring to monitor unattached devices
-var ring=new Ring("RING_01"); //ring to monitor attached devices
+var unattached=new ringMod.Ring("LOBBY"); //ring to monitor unattached devices
+var ring=new ringMod.Ring("RING_01"); //ring to monitor attached devices
+ring.setUnattached(unattached);
 var sessions=[];
 
 app.use(express.static('public'));
@@ -61,8 +65,8 @@ function newConnection(socket){
   }
 
   function joiner(data){
-		var newUnAttached=new DeviceShadow(session);
-		unattached.joinRing(newUnAttached);
+		var newUnAttached=new ringMod.DeviceShadow(session);
+		unattached.joinNewDevShadow(newUnAttached);
 	}
 
 	function unjoiner(data){
@@ -76,7 +80,7 @@ function newConnection(socket){
 	}
 
   function clientDisconnect(){
-  	//need to handle the effect of disconnect on lobby and rings
+	//need to handle the effect of disconnect on lobby and rings
 		var i=sessions.forEach(function(sesh,index){
 			if(sesh.id==session.id) return index;
 		});
@@ -90,6 +94,7 @@ function beat(){
 	heartbeat++;
 	console.log("heartbeat "+heartbeat);
 	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
+//	unattached.run();
 	ring.run();
 	sendConsoleData();
 }

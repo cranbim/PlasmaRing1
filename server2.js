@@ -262,53 +262,52 @@ function Ring(name){
 		processAttachGrants();
 		processAttachOffers();
 
-		function processAttachRequests(){
-			var newRequests=false;
+		// function processAttachRequests(){
+		// 	var newRequests=false;
 			//remove any expired requests
 			//console.log("there are "+requesters.length+"requesters");
-			requesters=requesters.filter(function(r){
-				if(r.isExpired()){
-					console.log("requester"+r.id+" has expired");
-				}
-				return !r.isExpired();
-			});
+			// requesters=requesters.filter(function(r){
+			// 	if(r.isExpired()){
+			// 		console.log("requester"+r.id+" has expired");
+			// 	}
+			// 	return !r.isExpired();
+			// });
 			//console.log(self.name+" "+self.ringID+" there are this many attach requests: "+requesters.length);
 			//check if there are requestors
-			requesters.forEach(
-				function(requester){
-					//any new requestors?
-					if(!requester.requestBroadcastSent){
-						if(self.deviceShadows.length===0){
-							console.log("No existing devices so just join");
-							//there are no other devices, so I can just join
-							attachToRing(requester.requestingDev,0,0);
-							requester.requestBroadcastSent=true;
-						} else { //the ring is not empty
-							requester.requestBroadcastSent=true;
-							newRequests=true;
-						}
-					}
-				}
-			);
-			if(newRequests){
-				//console.log("new Request For Permit Broadcast");
-				//send out permit requests if necessary
-				self.deviceShadows.forEach(function(devShadow){
-					//send out permit requests if necessary
-					devShadow.requestForPermit();
-					//if just been sent out then don't broadcast
-				});
-			} //else console.log("NO Request For Permit Broadcast");
-				//any permissions ready to send back?	
-		}
+		// 	requesters.forEach(
+		// 		function(requester){
+		// 			//any new requestors?
+		// 			if(!requester.requestBroadcastSent){
+		// 				if(self.deviceShadows.length===0){
+		// 					console.log("No existing devices so just join");
+		// 					//there are no other devices, so I can just join
+		// 					attachToRing(requester.requestingDev,0,0);
+		// 					requester.requestBroadcastSent=true;
+		// 				} else { //the ring is not empty
+		// 					requester.requestBroadcastSent=true;
+		// 					newRequests=true;
+		// 				}
+		// 			}
+		// 		}
+		// 	);
+		// 	if(newRequests){
+		// 		//console.log("new Request For Permit Broadcast");
+		// 		//send out permit requests if necessary
+		// 		self.deviceShadows.forEach(function(devShadow){
+		// 			//send out permit requests if necessary
+		// 			devShadow.requestForPermit();
+		// 			//if just been sent out then don't broadcast
+		// 		});
+		// 	} //else console.log("NO Request For Permit Broadcast");
+		// 		//any permissions ready to send back?	
+		// }
 	
 
 	function processAttachOffers(){
 		//remove any expired grants
-		offers.checkForExpired();
-		attachOffers=attachOffers.filter(function(o){
-			return !o.isExpired();
-		});
+		// attachOffers=attachOffers.filter(function(o){
+		// 	return !o.isExpired();
+		// });
 		attachOffers.forEach(function(offer){
 			if(!offer.offerSent){ //send to all requesters
 				console.log("requesters: ");
@@ -327,53 +326,53 @@ function Ring(name){
 	}
 
 
-	function checkOfferExists(p,n){
-		return attachOffers.some(function(o){
-			return o.prevID===p && o.nextID===n;
-		});
-	}
+	// function checkOfferExists(p,n){
+	// 	return attachOffers.some(function(o){
+	// 		return o.prevID===p && o.nextID===n;
+	// 	});
+	// }
 
 	
 	function processAttachGrants(){
 		//remove any expired grants
 		var o;
-		attachGrants=attachGrants.filter(function(g){
-			return !g.isExpired();
-		});
-		//if there is only one existing device in teh ring
-		if(self.deviceShadows.length===1){
-			//if there is one permit
-			if(attachGrants.length>0){
-				if(!checkOfferExists(self.deviceShadows[0].session.id,self.deviceShadows[0].session.id)){
-					o=new AttachOffer(
-					self.deviceShadows[0].session.id,
-					self.deviceShadows[0].session.id);
-					console.log("New attach offer created "+self.deviceShadows[0].session.id+" "+self.deviceShadows[0].session.id);
-					attachOffers.push(o);
-				} else {
-					console.log("This offer already exists");
-				}
-			}
-		} else {
+		// attachGrants=attachGrants.filter(function(g){
+		// 	return !g.isExpired();
+		// });
+		// //if there is only one existing device in teh ring
+		// if(self.deviceShadows.length===1){
+		// 	//if there is one permit
+		// 	if(attachGrants.length>0){
+		// 		if(!checkOfferExists(self.deviceShadows[0].session.id,self.deviceShadows[0].session.id)){
+		// 			o=new AttachOffer(
+		// 			self.deviceShadows[0].session.id,
+		// 			self.deviceShadows[0].session.id);
+		// 			console.log("New attach offer created "+self.deviceShadows[0].session.id+" "+self.deviceShadows[0].session.id);
+		// 			attachOffers.push(o);
+		// 		} else {
+		// 			console.log("This offer already exists");
+		// 		}
+		// 	}
+		// } else {
 
-			var granted=[];
-			//check for adjacent grants
-			attachGrants.forEach(function(grant){
-				granted.push(findDevRingPos(grant.device));
-			});
-			var p=granted.length-1;
-			for(var i=0; i<granted.length; i++){
-				var currPos=granted[i];
-				var prevPos=granted[p];
-				if(currPos-prevPos===1||
-					currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
-					//CREATE AN OFFER devid's not positions, which could change
-					o=new AttachOffer(
-						self.deviceShadows[prevPos].session.id,
-						self.deviceShadows[currPos].session.id);
-					attachOffers.push(o);
-				}
-			}
+			// var granted=[];
+			// //check for adjacent grants
+			// attachGrants.forEach(function(grant){
+			// 	granted.push(findDevRingPos(grant.device));
+			// });
+			// var p=granted.length-1;
+			// for(var i=0; i<granted.length; i++){
+			// 	var currPos=granted[i];
+			// 	var prevPos=granted[p];
+			// 	if(currPos-prevPos===1||
+			// 		currPos-prevPos===-(self.deviceShadows.length-1)){ //two adjacent grants
+			// 		//CREATE AN OFFER devid's not positions, which could change
+			// 		o=new AttachOffer(
+			// 			self.deviceShadows[prevPos].session.id,
+			// 			self.deviceShadows[currPos].session.id);
+			// 		attachOffers.push(o);
+			// 	}
+			// }
 		}
 	}
 	};
@@ -404,24 +403,24 @@ function Ring(name){
 	// 	s.emit('attached',{ring: self.ringID});
 	// }
 
-	function attachToRing(devid, prev, next){
-		console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid+" twixt: "+prev+" and: "+next);
-		//find device shadow in lobby
-		var ds=unattached.findDevShadow(devid);
-		//find the prev and next indices
-//		if(next===0 && prev===0){
-			var prevIndex=findDevRingPos(prev);
-			var nextIndex=findDevRingPos(next);
-//		}
+// 	function attachToRing(devid, prev, next){
+// 		console.log(self.name+" "+self.ringID+" Attaching device to ring, dev: "+devid+" twixt: "+prev+" and: "+next);
+// 		//find device shadow in lobby
+// 		var ds=unattached.findDevShadow(devid);
+// 		//find the prev and next indices
+// //		if(next===0 && prev===0){
+// 			var prevIndex=findDevRingPos(prev);
+// 			var nextIndex=findDevRingPos(next);
+// //		}
 
-		//assign device shadow to this ring
-		self.joinRing(ds,nextIndex);
-		//remove from lobby
-		unattached.unjoinRing(devid);
-		//notify the device
-		var s=ds.session.socket;
-		s.emit('attached',{ring: self.ringID});
-	}
+// 		//assign device shadow to this ring
+// 		self.joinRing(ds,nextIndex);
+// 		//remove from lobby
+// 		unattached.unjoinRing(devid);
+// 		//notify the device
+// 		var s=ds.session.socket;
+// 		s.emit('attached',{ring: self.ringID});
+// 	}
 
 	
 	// function AttachRequest(devid){
