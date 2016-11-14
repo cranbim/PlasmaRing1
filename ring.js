@@ -23,9 +23,11 @@ function run(){
 }
 
 
-function DeviceShadow(session){
+function DeviceShadow(session, devid, devWidth){
 	this.session=session;
-	console.log("New device shadow "+this.session.id);
+	this.devid=devid;
+	this.devWidth=devWidth;
+	console.log("New device shadow "+this.session.id+", Device"+devid+", Width:"+devWidth+" pixels");
 
 	this.requestForPermit=function(){
 		console.log(this.session.id+" received request for attach permit. Pass to device");

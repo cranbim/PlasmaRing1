@@ -5,7 +5,10 @@ var ringMod= require('./ring.js');
 
 var app=express();
 
-var server=app.listen(4000);
+//var server=app.listen(4000, "0.0.0.0");
+
+var server = require('http').createServer(app);
+var io = require('socket.io')(server);
 
 var nextID=10000;
 var nextRingID=0;
@@ -21,16 +24,20 @@ var sessions=[];
 
 app.use(express.static('public'));
 
+server.listen(4000,"0.0.0.0");
+
 console.log("The Plasma Ring Server is running");
 console.log("Listening on port:4000");
 
-var socket = require('socket.io');
+//var socket = require('socket.io');
 
-var io=socket(server);
+//var io=socket(server);
 
 io.sockets.on('connection', newConnection);
 
 var h=setInterval(beat,1000);//set one second heartbeat
+
+var blobList=new BlobList();
 
 function newConnection(socket){
   var session=new Session(socket);
@@ -46,6 +53,11 @@ function newConnection(socket){
   socket.on('permit',permitReceived);
   socket.on('offerAccepted',offerAccepted);
   socket.on('console',setConsole);
+  socket.on('newBlob',blobFromClient);
+
+  function blobFromClient(data){
+  	blobList.newBlob(data.x, data.y, data.device);
+  }
 
   function offerAccepted(data){
 		ring.offerAccepted(data);
@@ -65,7 +77,7 @@ function newConnection(socket){
   }
 
   function joiner(data){
-		var newUnAttached=new ringMod.DeviceShadow(session);
+		var newUnAttached=new ringMod.DeviceShadow(session, data.id, data.width);
 		unattached.joinNewDevShadow(newUnAttached);
 	}
 
@@ -142,4 +154,25 @@ function Session(socket){ //class to hold session info
 	this.socket=socket;
 	this.id=nextID++; //increment the ID number
 	socket.emit('id',{id:this.id});
+}
+
+function BlobList(){
+	var nextBlobID=1000;
+	var blobs=[];
+
+	this.newBlob=function(x,y,dev){
+		var b=new Blob(x,y, dev);
+		blobs.push(b);
+	};
+
+	this.run=function(){
+		//run blobs
+	};
+
+	function Blob(x, y, devid){
+		var id=nextBlobID++;
+		// console.log("New Blob ${id} from ${devid} at ${x}, ${y}");
+		console.log("New Blob "+id+" from "+devid+" at "+x+", "+y);
+	}
+
 }
