@@ -308,7 +308,7 @@ function OffersList(){
 			}
 		});
 		return et;
-	}
+	};
 }
 
 

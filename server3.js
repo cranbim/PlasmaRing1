@@ -1,6 +1,8 @@
 var express = require('express');
 var ringMod= require('./ring.js');
 
+var test="DAVE";
+
 //var newRing=new testRing.Ring();
 
 var app=express();
@@ -17,8 +19,8 @@ var nextAttachOffer=0;
 var heartbeat=1000;
 var consoleSession;
 
-var unattached=new ringMod.Ring("LOBBY"); //ring to monitor unattached devices
-var ring=new ringMod.Ring("RING_01"); //ring to monitor attached devices
+var unattached=new ringMod.Ring("LOBBY", io); //ring to monitor unattached devices
+var ring=new ringMod.Ring("RING_01", io); //ring to monitor attached devices
 ring.setUnattached(unattached);
 var sessions=[];
 
@@ -37,7 +39,6 @@ io.sockets.on('connection', newConnection);
 
 var h=setInterval(beat,1000);//set one second heartbeat
 
-var blobList=new BlobList();
 
 function newConnection(socket){
   var session=new Session(socket);
@@ -54,9 +55,14 @@ function newConnection(socket){
   socket.on('offerAccepted',offerAccepted);
   socket.on('console',setConsole);
   socket.on('newBlob',blobFromClient);
+  socket.on('blobUpdate',updateBlob);
+
+  function updateBlob(data){
+		ring.updateBlob(data);
+  }
 
   function blobFromClient(data){
-  	blobList.newBlob(data.x, data.y, data.device);
+		ring.clientBlob(data);
   }
 
   function offerAccepted(data){
@@ -117,7 +123,8 @@ function sendConsoleData(){
 		consoleSession.socket.emit('consoleData',{
 			lobby: buildJSONRing(unattached),
 			ring: buildJSONRing(ring),
-			ringMeta: ring.buildJSONRingMeta()
+			ringMeta: ring.buildJSONRingMeta(),
+			blobMeta: ring.buildJSONBlobMeta()
 		});
 	} else {
 		console.log("Can't send console data, no console connected");
@@ -156,23 +163,40 @@ function Session(socket){ //class to hold session info
 	socket.emit('id',{id:this.id});
 }
 
-function BlobList(){
-	var nextBlobID=1000;
-	var blobs=[];
+// function BlobList(){
+// 	var nextBlobID=1000;
+// 	var blobs=[];
 
-	this.newBlob=function(x,y,dev){
-		var b=new Blob(x,y, dev);
-		blobs.push(b);
-	};
 
-	this.run=function(){
-		//run blobs
-	};
+// 	this.newBlob=function(x,y,dev){
+// 		var b=new Blob(x,y, dev);
+// 		blobs.push(b);
+// 	};
 
-	function Blob(x, y, devid){
-		var id=nextBlobID++;
-		// console.log("New Blob ${id} from ${devid} at ${x}, ${y}");
-		console.log("New Blob "+id+" from "+devid+" at "+x+", "+y);
-	}
+// 	this.run=function(){
+// 		for(var i=blobs.length-1; i>=0; i--){
+// 			if(!blobs[i].update()) blobs.splice(i,1);
+// 		}
+// 	};
 
-}
+// 	this.getBlobs=function(){
+// 		return blobs;
+// 	}
+
+// 	function Blob(x, y, devid){
+// 		var ttl=500;
+// 		var id=nextBlobID++;
+// 		// console.log("New Blob ${id} from ${devid} at ${x}, ${y}");
+// 		console.log("New Blob "+id+" from "+devid+" at "+x+", "+y);
+
+// 		this.update=function(){
+// 			ttl--;
+// 			return ttl>0;
+// 		}
+
+// 		this.getPos=function(){
+// 			return {x:x, y:y};
+// 		}
+// 	}
+
+// }

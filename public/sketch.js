@@ -3,22 +3,34 @@ var id;
 var posX=0;
 var count=0;
 var connectionStatus=0; //0=connected, 1=unattached, 2=attached
-var button, attachButton, permitButton, statusMessage, position, idnum;
+var button, attachButton, detachButton, permitButton, statusMessage, position, idnum;
+var metaDiv;
+var geometry;
 var offersDiv;
 var offersList;
 var offers=[];
 var dataRefresh;
 var clicks=[];
 var myWidth=400;
+var myStartX=null;
+var myEndX=null;
+var myBlobs=new MyBlobs();
+var statusBar;
+var hideMeta=false;
+
+
 
 function setup() {
-  createCanvas(400,400);
+  createCanvas(400,200);
+  statusBar=new StatusBar();
+  metaDiv=select('#meta');
   button = select('#join');
   attachButton = select('#attach');
   attachButton.hide();
   permitButton = select('#permit');
   permitButton.hide();
   statusMessage = select('#status');
+  geometry = select('#geometry');
   position = select('#position');
   offersDiv = select('#attach_offers');
   offersDiv.html('My Offers');
@@ -33,22 +45,39 @@ function setup() {
   dataRefresh=setInterval(dataRefreshPoll, 1000);
 }
 
+function draw() {
+  background(80);
+  runClicks();
+  myBlobs.run();
+  statusBar.show();
+  statusBar.run();
+}
+
+
 function mouseClicked(){
   if(mouseX>=0 &&
     mouseX<=width &&
     mouseY>=0 &&
     mouseY<=height){
-      newClick(mouseX, mouseY);
+      newClick(mouseX+myStartX, mouseY);
   }
 }
 
-function touchStarted(){
+function notouchStarted(){
   if(mouseX>=0 &&
     mouseX<=width &&
     mouseY>=0 &&
     mouseY<=height){
-      newClick(mouseX, mouseY);
+      newClick(mouseX+myStartX, mouseY);
   }
+}
+
+function keyPressed(){
+  if(key=='h' || key=='H'){
+    hideMeta=!hideMeta;
+  }
+  if(hideMeta) metaDiv.hide();
+  else metaDiv.show();
 }
 
 
@@ -59,11 +88,14 @@ function dataRefreshPoll(){
   //remove expired offer
   checkOffers();
   renderOffers();
+  // myBlobs.run();
 }
 
 function connected(){
   console.log("Connected ("+socket.id+")");
   statusMessage.html("Connected");
+  // geometry.html("Width ${myWidth} startX:${myStartX} endX:${myEndX}");
+  geometry.html("Width "+myWidth+" startX:"+myStartX+" endX:"+myEndX);
   button.mouseClicked(joinMe);
   attachButton.mouseClicked(attachMe);
   socket.on('blob', incomingBlob);
@@ -72,6 +104,47 @@ function connected(){
   socket.on('attached',attachedToRing);
   socket.on('offer',processOffer);
   socket.on('ringpos',updateRingPos);
+  socket.on('startX', setStartX);
+  socket.on('blobData',handleBlobData);
+  socket.on('notifyAttached',notifyAttached);
+}
+
+function notifyAttached(){
+  statusBar.trigger('attached',5);
+}
+
+function handleBlobData(data){
+  console.log("Incoming blob data");
+  if(data.blobs.length>0) console.log(data.blobs[0].id+" "+data.blobs[0].x);
+  processBlobData(data.blobs);
+}
+
+function processBlobData(blobs){
+  blobs.forEach(function(blob){
+    //check if blob is in our patch
+    if(blob.x>=myStartX && blob.x<myEndX){
+      //check if we know about this blob
+      if(!myBlobs.exists(blob)){
+        //if not create it
+        myBlobs.addBlob(blob);
+        console.log("Blob entered my patch "+blob.id+" "+blob.x);
+      }
+      //if we do then just run it
+    }
+  });
+}
+
+function setStartX(data){
+  console.log("new StartX Pre: "+myStartX+" "+myEndX);
+  if(data.sx!==null){
+    myStartX=data.sx;
+    myEndX=myStartX+myWidth;
+  } else {
+    myStartX=null;
+    myEndX=null;
+  }
+  geometry.html("Width "+myWidth+" startX:"+myStartX+" endX:"+myEndX);
+  console.log("new StartX post: "+myStartX+" "+myEndX);
 }
 
 function updateRingPos(data){
@@ -103,6 +176,7 @@ function processOffer(data){
   // li.child(acceptOfferButton);
   // acceptOfferButton.mouseClicked(handleAcceptOffer);
   // acceptOfferButton.attribute("data-offer",data.id);
+  statusBar.trigger("offer");
 }
 
 function checkOffers(){
@@ -163,19 +237,23 @@ function handleAcceptOffer(){
   console.log("Offer accepted "+offer.id);
   this.html("Accepted");
   socket.emit("offerAccepted",{offer:offer.id, device:id});
+  statusBar.trigger("accept");
 }
 
 function attachedToRing(data){
   console.log("Successfully attached to ring: "+data.ring);
-  statusMessage.html('Attached to Ring');
+  statusMessage.html('Attached to Ring '+data.ring);
   attachButton.html('detach');
+  detachButton=attachButton;
   permitButton.show();
   permitButton.mouseClicked(permitAttacher);
+  statusBar.trigger("attach");
 }
 
 function permitAttacher(){
   console.log("Permit Attacher");
   socket.emit('permit',{id:id});
+  statusBar.trigger("grant");
 }
 
 function setID(data){
@@ -186,6 +264,7 @@ function setID(data){
 
 function requestForPermit(){
   console.log("received request for attach permit from ring");
+  statusBar.trigger("permit");
 }
 
 function joinMe(){
@@ -209,24 +288,7 @@ function attachMe(){
   socket.emit('attach',{id: id});
   console.log("requested attachement to ring");
   statusMessage.html('Requested attachment to Ring');
-}
-
-function draw() {
-  background(155,50);
-  count++;
-  posX++;
-  if(count%10===0){
-    socket.emit('blob',{x:posX});
-  }
-  if(posX>=width){
-    count=0;
-    posX=0;
-  }
-  fill(0,200,200);
-  noStroke();
-  ellipse(posX,height/2,10,10);
-  //background(200,150,10);
-  runClicks();
+  statusBar.trigger("request");
 }
 
 function incomingBlob(data){
@@ -250,6 +312,7 @@ function runClicks(){
 function newClick(x,y){
   var c=new Click(x,y);
   clicks.push(c);
+  statusBar.trigger("blob");
   socket.emit("newBlob",{device:id, x:x, y:y});
 }
 
@@ -257,7 +320,7 @@ function Click(x,y){
   var r=5;
   var rInc=1;
   var alpha=255;
-  var ttl=60;
+  var ttl=600;
 
   this.show=function(){
     push();
@@ -276,5 +339,137 @@ function Click(x,y){
     ttl--;
     alpha=map(ttl,100,0,255,20);
     return ttl>0;
+  };
+}
+
+function MyBlobs(){
+  blobs=[];
+
+  this.addBlob=function(data){
+    var b=new Blob(data);
+    blobs.push(b);
+  };
+
+  this.exists=function(data){
+    return blobs.find(function(blob){
+      return data.id===blob.id;
+    });
+  };
+
+  this.run=function(){
+    for(var i=blobs.length-1; i>=0; i--){
+      blobs[i].show();
+      if(!blobs[i].update()){
+        blobs.splice(i,1);
+      }
+    }
+  };
+
+  function Blob(data){
+    this.id=data.id;
+    this.ttl=data.ttl;
+    this.x=data.x;
+    this.y=data.y;
+    this.pos=createVector(this.x,this.y);
+    this.vel=createVector(1,0);
+    this.prevailing=createVector(1,0);
+
+
+    this.show=function(){
+      push();
+      translate(this.x-myStartX, this.y);
+      stroke(255,0,150);
+      if(this.ttl>100){
+        fill(0,255,150);
+      } else {
+        fill(255,0,0);
+      }
+      ellipse(0,0,30,30);
+      pop();
+    };
+
+    this.update=function(){
+      this.pos=createVector(this.x,this.y);
+      var acc=p5.Vector.fromAngle(random(-PI, PI));
+      this.vel.add(acc);
+      this.vel.add(this.prevailing);
+      this.vel.limit(4);
+      this.pos.add(this.vel);
+      this.x=this.pos.x;
+      this.y=this.pos.y;
+      this.x+=1;
+      this.ttl--;
+      if(this.x>=myEndX || this.x<myStartX){
+        console.log("blob "+this.id+" just exited");
+        socket.emit('blobUpdate',{id:this.id, x:this.x, y:this.y, ttl:this.ttl});
+      }
+      if(this.y<0) this.y=height;
+      if(this.y>height) this.y=0;
+      if(this.ttl%30<1) socket.emit('blobUpdate',{id:this.id, x:this.x, y:this.y, ttl:this.ttl});
+      return this.x>=myStartX && this.x<myEndX && this.ttl>0;
+    };
   }
+}
+
+function StatusBar(){
+  this.flashes=0;
+  this.x=0;
+  this.y=0;
+  this.w=width;
+  this.h=height;
+  this.thick=50;
+  this.thickStep=this.thick/5;
+  var ttlMax=60;
+  this.ttl=0;
+  var r=20;
+  var g=225;
+  var b=100;
+  var alpha=255;
+  var statusColors={
+    request: {r: 20, g:80, b:255 },
+    permit: {r: 255, g:20, b:150 },
+    grant: {r: 125, g:20, b:255 },
+    offer: {r: 255, g:130, b:0 },
+    accept: {r: 255, g:230, b:0 },
+    accepted: {r: 0, g:255, b:50 },
+    attach: {r: 0, g:180, b:0 },
+    attached: {r: 0, g:180, b:0 },
+    blob: {r: 200, g:80, b:20 },
+    none: {r: 0, g:0, b:0 }
+  };
+
+  this.run=function(){
+    if(this.ttl>0){
+      this.ttl--;
+    } else {
+      if(this.flashes>0){
+        this.flashes--;
+        this.ttl=ttlMax;
+      }
+    }
+  };
+
+  this.trigger=function(trigKey, count){
+    this.flashes=count||0;
+    this.ttl=ttlMax;
+    if(!statusColors[trigKey]){
+      trigKey="none";
+    }
+    r=statusColors[trigKey].r;
+    g=statusColors[trigKey].g;
+    b=statusColors[trigKey].b;
+  };
+
+  this.show=function(){
+    if(this.ttl>0){
+      for(var i=0; i<5; i++){
+        alpha=map(this.ttl,ttlMax,0,(5-i)*50,50);
+        noFill();
+        stroke(r,g,b,alpha);
+        strokeWeight(this.thickStep);
+        rect(this.x+this.thickStep*(i+0.5),this.y+this.thickStep*(i+0.5),this.w-this.thickStep*(i+0.5)*2, this.h-this.thickStep*(i+0.5)*2);
+        strokeWeight(1);
+      }
+    }
+  };
 }
