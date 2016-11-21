@@ -7,7 +7,7 @@ var lobbyUL;
 var ringDiv;
 var ringUL=null;
 var MetaDiv;
-var metaULreq, metaULgrant, metaULoffer;
+var metaULreq, metaULgrant, metaULoffer, metaBlobs;
 
 function setup() {
   noCanvas();
@@ -36,6 +36,7 @@ function consoleData(data){
   var ld=data.lobby;
   var rd=data.ring;
   var md=data.ringMeta;
+  var bd=data.blobMeta;
 
   //var lobbyList=selectAll('li',lobbyUL);
   //lobbyList.forEach(function(){});
@@ -71,7 +72,7 @@ function consoleData(data){
       li.remove();
     });
     rd.data.forEach(function(dev,i){
-      devString=("00"+dev.position).slice(-3)+" "+dev.connection+" "+dev.socket;
+      devString=("00"+dev.position).slice(-2)+" "+dev.connection+" "+dev.socket;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(ringUL);
@@ -83,20 +84,20 @@ function consoleData(data){
     var devString;
     if(!metaULreq){
       metaULreq=createElement('ul');
-      metaULreq.parent(metaDiv);
+      metaULreq.parent(metaDiv);ß
     }
     var count=select('p',metaULreq);
     if(!count) {
       count=createP("");
       count.parent(metaULreq);
     } 
-    count.html("number: "+md.requesters.length);
+    count.html("Attach Requests #: "+md.requesters.length);
     var metaReqList=selectAll('li',metaULreq);
     metaReqList.forEach(function(li){
       li.remove();
     });
     md.requesters.forEach(function(r,i){
-      devString=r.id+": "+r.device;
+      devString=r.id+": "+r.device+" , "+r.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULreq);
@@ -111,13 +112,13 @@ function consoleData(data){
       count=createP("");
       count.parent(metaULgrant);
     } 
-    count.html("number: "+md.grants.length);
+    count.html("Attach Grants #: "+md.grants.length);
     var metaGrantList=selectAll('li',metaULgrant);
     metaGrantList.forEach(function(li){
       li.remove();
     });
     md.grants.forEach(function(g,i){
-      devString=i+": "+g.device;
+      devString=i+": "+g.device+" , "+g.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULgrant);
@@ -126,21 +127,42 @@ function consoleData(data){
       metaULoffer=createElement('ul');
       metaULoffer.parent(metaDiv);
     }
-    var count=select('p',metaULoffer);
+    count=select('p',metaULoffer);
     if(!count) {
       count=createP("");
       count.parent(metaULoffer);
-    } 
-    count.html("number: "+md.offers.length);
+    }
+    count.html("Attach Offers #: "+md.offers.length);
     var metaOfferList=selectAll('li',metaULoffer);
     metaOfferList.forEach(function(li){
       li.remove();
     });
     md.offers.forEach(function(o,i){
-      devString=o.id+", prev:"+o.prev+", next:"+o.next;
+      devString=o.id+", prev:"+o.prev+", next:"+o.next+", active:"+o.active;
       //console.log(devString);
       var el=createElement('li',devString);
       el.parent(metaULoffer);
+    });
+
+    if(!metaBlobs){
+      metaBlobs=createElement('ul');
+      metaBlobs.parent(metaDiv);
+    }
+    count=select('p',metaBlobs);
+    if(!count) {
+      count=createP("");
+      count.parent(metaBlobs);
+    }
+    count.html("Active Blobs #: "+bd.length);
+    var blobList=selectAll('li',metaBlobs);
+    blobList.forEach(function(li){
+      li.remove();
+    });
+    bd.forEach(function(b,i){
+      devString=b.id+", x:"+floor(b.x)+", y"+floor(b.y)+", ttl:"+b.ttl;
+      //console.log(devString);
+      var el=createElement('li',devString);
+      el.parent(metaBlobs);
     });
   }
 }
