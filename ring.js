@@ -84,7 +84,8 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 	};
 
 	this.updateBlob=function(data){
-		this.blobList.updateBlob(data.id, data.x, data.y, data.ttl);
+		this.blobList.updateBlob(data.id, data.x, data.y, data.ttl, this.ringLengthPixels);
+		//need to also check wraparound on ring length
 		sendBlobData();
 	}
 
@@ -387,11 +388,12 @@ function BlobList(){
 	var nextBlobID=1000;
 	var blobs=[];
 
-	this.updateBlob=function(id, x, y, ttl){
+	this.updateBlob=function(id, x, y, ttl, maxX){
 		console.log("update blob "+id+" with x:"+x);
 		var b=this.findBlob(id);
 		if(b) {
 			b.updateVals(x,y, ttl);
+			b.update(maxX);
 			// console.log(b);
 		} else {
 			// console.log("No blob matched");
