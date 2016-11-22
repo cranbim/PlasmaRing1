@@ -73,21 +73,26 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 
 	this.clientBlob=function(data){
 		var pos=findDevRingPos(data.device);
+		var bData;
 		console.log("RIng pos:"+pos);
 		if(pos!==null){
-			this.blobList.newBlob(data.x, data.y, data.device);
+			bData=this.blobList.newBlob(data.x, data.y, data.device);
 			console.log("ring received blob from device "+data.device+" OK");
 		} else {
 			console.log("ring received blob from device "+data.device+" but not attached to this ring");
 		}
-		sendBlobData();
+		sendBlobData();//bData
+	};
+
+	this.detacher=function(data){
+		detachFromRing(data.id);
 	};
 
 	this.updateBlob=function(data){
-		this.blobList.updateBlob(data.id, data.x, data.y, data.ttl, this.ringLengthPixels);
+		var bData=this.blobList.updateBlob(data.id, data.x, data.y, data.ttl, this.ringLengthPixels);
 		//need to also check wraparound on ring length
-		sendBlobData();
-	}
+		sendBlobData();//bData
+	};
 
 	this.buildJSONRingMeta=function(){
 		var metaData={};
@@ -148,13 +153,21 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 	this.unjoinRing=function(id){
 		var i=findDevRingPos(id);
 		var shadow=this.findShadow(id);
+		var startX=shadow.startX;
+		var dw=shadow.devWidth;
 		//this.deviceShadows[i]=null;
 		this.deviceShadows.splice(i,1);
 		//update ring geometry
 		this.ringLengthDevs--;
-		this.ringLengthPixels-=shadow.devWidth;
-		//setStartX for newly inserted device
-		//update all subsequent devices
+		this.ringLengthPixels-=dw;
+			//update all subsequent devices
+		if(unattached!==null){ //don't do this on the unattached ring	
+			shadow.setStartX(null);
+			for(var j=i; j<this.deviceShadows.length; j++){
+				this.deviceShadows[j].setStartX(startX);
+				startX=this.deviceShadows[j].startX;
+			}
+		}
 		console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
 	};
 
@@ -209,7 +222,7 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		processAttachGrants();
 		processAttachOffers();
 		this.blobList.run(this.ringLengthPixels);
-		//sendBlobData();
+		sendBlobData([]);
 	};
 
 	function processAttachRequests(){
@@ -299,11 +312,11 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		}
 	}
 
-	function sendBlobData(){
+	function sendBlobData(){//(blobs){
+		// if(blobs.length===0){
+		// 	blobs=self.blobList.getBlobs();
+		// }
 		var blobs=self.blobList.getBlobs();
-		// deviceShadows.forEach(function(ds){
-		//	ds.session.socket.emit("blobData", {blobs:blobs});
-		// });
 		io.sockets.emit("blobData", {blobs:blobs});
 	}
 
@@ -370,11 +383,11 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		//find device in the current ring
 		var ds=self.findShadow(devid);
 		//add to unattached
-		unattached.joinRing(devid);
+		unattached.joinNewDevShadow(ds);
 		//remove from ring
 		self.unjoinRing(devid);
 		//notify
-
+		//how to do this? send a message?
 	}
 
 }
@@ -389,7 +402,7 @@ function BlobList(){
 	var blobs=[];
 
 	this.updateBlob=function(id, x, y, ttl, maxX){
-		console.log("update blob "+id+" with x:"+x);
+		//console.log("update blob "+id+" with x:"+x);
 		var b=this.findBlob(id);
 		if(b) {
 			b.updateVals(x,y, ttl);
@@ -398,6 +411,8 @@ function BlobList(){
 		} else {
 			// console.log("No blob matched");
 		}
+		//return blob data tructured as an array
+		//return [b.getPos()];
 	};
 
 	this.findBlob=function(id){
@@ -411,6 +426,7 @@ function BlobList(){
 	this.newBlob=function(x,y,dev){
 		var b=new Blob(x,y, dev);
 		blobs.push(b);
+		//return [b.getPos()];
 	};
 
 	this.run=function(maxX){

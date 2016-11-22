@@ -27,6 +27,8 @@ function setup() {
   button = select('#join');
   attachButton = select('#attach');
   attachButton.hide();
+  detachButton = select('#detach');
+  detachButton.hide();
   permitButton = select('#permit');
   permitButton.hide();
   statusMessage = select('#status');
@@ -98,7 +100,7 @@ function connected(){
   geometry.html("Width "+myWidth+" startX:"+myStartX+" endX:"+myEndX);
   button.mouseClicked(joinMe);
   attachButton.mouseClicked(attachMe);
-  socket.on('blob', incomingBlob);
+//  socket.on('blob', incomingBlob);
   socket.on('heartbeat',beat);
   socket.on('rfpermit',requestForPermit);
   socket.on('attached',attachedToRing);
@@ -243,11 +245,25 @@ function handleAcceptOffer(){
 function attachedToRing(data){
   console.log("Successfully attached to ring: "+data.ring);
   statusMessage.html('Attached to Ring '+data.ring);
-  attachButton.html('detach');
-  detachButton=attachButton;
+  // attachButton.html('detach');
+  detachButton.show();
+  attachButton.hide();
   permitButton.show();
+  detachButton.mouseClicked(detachFromRing);
   permitButton.mouseClicked(permitAttacher);
   statusBar.trigger("attach");
+}
+
+function detachFromRing(){
+  console.log("Requested detach");
+  socket.emit('detach',{id:id});
+  statusBar.trigger("detach");
+  statusMessage.html('Joined, but detached');
+  // attachButton.html('detach');
+  detachButton.hide();
+  permitButton.hide();
+  attachButton.show();
+  geometry.html("Width "+myWidth);
 }
 
 function permitAttacher(){
@@ -291,12 +307,12 @@ function attachMe(){
   statusBar.trigger("request");
 }
 
-function incomingBlob(data){
-	//console.log("incoming "+data);
-	noFill();
-  stroke(100,80,60);
-  ellipse(data.x, height/4,10,10);
-}
+// function incomingBlob(data){
+// 	//console.log("incoming "+data);
+// 	noFill();
+//   stroke(100,80,60);
+//   ellipse(data.x, height/4,10,10);
+// }
 
 function beat(data){
   console.log(data.beat);
@@ -433,6 +449,7 @@ function StatusBar(){
     accept: {r: 255, g:230, b:0 },
     accepted: {r: 0, g:255, b:50 },
     attach: {r: 0, g:180, b:0 },
+    detach: {r: 255, g:0, b:0 },
     attached: {r: 0, g:180, b:0 },
     blob: {r: 200, g:80, b:20 },
     none: {r: 0, g:0, b:0 }

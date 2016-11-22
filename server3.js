@@ -56,6 +56,11 @@ function newConnection(socket){
   socket.on('console',setConsole);
   socket.on('newBlob',blobFromClient);
   socket.on('blobUpdate',updateBlob);
+  socket.on('detach', detacher);
+
+  function detacher(data){
+		ring.detacher(data);
+  }
 
   function updateBlob(data){
 		ring.updateBlob(data);
