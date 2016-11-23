@@ -12,11 +12,18 @@ var offers=[];
 var dataRefresh;
 var clicks=[];
 var myWidth=400;
+var devHeight=200;
 var myStartX=null;
 var myEndX=null;
 var myBlobs=new MyBlobs();
 var statusBar;
 var hideMeta=false;
+
+var noisePerWorldPixel=0.005;
+var noiseSegsX=20;
+var noiseField;
+var attached=false;
+
 
 
 
@@ -44,11 +51,18 @@ function setup() {
     console.log("Disconnected from server ("+socket.id+")");
     button.html("Nothing");
   });
+  noiseField=new NoiseField();
+  //noiseField.setField(myWidth, myStartX, noiseSegsX, noisePerWorldPixel);
+
   dataRefresh=setInterval(dataRefreshPoll, 1000);
 }
 
 function draw() {
   background(80);
+  if(attached){
+    noiseField.show();
+    noiseField.update();
+  }
   runClicks();
   myBlobs.run();
   statusBar.show();
@@ -116,8 +130,8 @@ function notifyAttached(){
 }
 
 function handleBlobData(data){
-  console.log("Incoming blob data");
-  if(data.blobs.length>0) console.log(data.blobs[0].id+" "+data.blobs[0].x);
+  console.log("Incoming blob data "+data.blobs.length);
+  // if(data.blobs.length>0) console.log(data.blobs[0].id+" "+data.blobs[0].x);
   processBlobData(data.blobs);
 }
 
@@ -147,6 +161,7 @@ function setStartX(data){
   }
   geometry.html("Width "+myWidth+" startX:"+myStartX+" endX:"+myEndX);
   console.log("new StartX post: "+myStartX+" "+myEndX);
+  noiseField.calcOffset(myStartX);
 }
 
 function updateRingPos(data){
@@ -252,6 +267,9 @@ function attachedToRing(data){
   detachButton.mouseClicked(detachFromRing);
   permitButton.mouseClicked(permitAttacher);
   statusBar.trigger("attach");
+  attached=true;
+  noiseField.setField(myWidth, myStartX, noiseSegsX, noisePerWorldPixel);
+  attachedFrame=frameCount;
 }
 
 function detachFromRing(){
@@ -264,6 +282,7 @@ function detachFromRing(){
   permitButton.hide();
   attachButton.show();
   geometry.html("Width "+myWidth);
+  attached=false;
 }
 
 function permitAttacher(){
@@ -316,6 +335,8 @@ function attachMe(){
 
 function beat(data){
   console.log(data.beat);
+  // syncTime=Date.now();
+  // noiseField.syncOffset();
 }
 
 function runClicks(){
@@ -486,6 +507,68 @@ function StatusBar(){
         strokeWeight(this.thickStep);
         rect(this.x+this.thickStep*(i+0.5),this.y+this.thickStep*(i+0.5),this.w-this.thickStep*(i+0.5)*2, this.h-this.thickStep*(i+0.5)*2);
         strokeWeight(1);
+      }
+    }
+  };
+}
+
+// noisePerWorldPixel=0.0005;
+// var noiseSegsX=20;
+
+function NoiseField(){
+  var step,w,h;
+  var noiseOffX=0;
+  var noiseOffY=0;
+  var field=[];
+  var shiftXinc=0.01;
+  var shiftYinc=0.001;
+  var shiftX=0;
+  var shiftY=0;
+  var noiseSyncFrame=frameCount;
+
+  this.setField=function(devWidth, startX, noiseSegsX, noisePerWorldPixel){
+    step=floor(devWidth/noiseSegsX);
+    w=noiseSegsX;
+    h=floor(devHeight/step);
+    noiseOffX=startX*noisePerWorldPixel;
+    noiseSeed(10);
+    generate();
+    console.log("field offset" +noiseOffX);
+  };
+
+  this.update=function(){
+    //shiftX+=shiftXinc;
+    //shiftY+=shiftYinc;
+    shiftX=(frameCount-noiseSyncFrame)*shiftXinc;
+    generate();
+  };
+
+  function generate(){
+    for(var y=0; y<h; y++){
+      var noiseRow=[];
+      for(var x=0; x<w; x++){
+        noiseRow[x]=noise(shiftX+noiseOffX+x*step*noisePerWorldPixel,shiftY+noiseOffY+y*step*noisePerWorldPixel);
+      }
+      field[y]=noiseRow;
+    }
+  }
+
+  this.syncOffset=function(){
+    shiftX=0;
+    shiftY=0;
+  };
+
+  this.calcOffset=function(startX){
+    noiseSyncFrame=frameCount;
+    noiseOffX=startX*noisePerWorldPixel;
+  };
+
+  this.show=function(){
+    for(var y=0; y<field.length; y++){
+      for(var x=0; x<field[y].length; x++){
+        fill(map(field[y][x],0,1,0,255),150);
+        noStroke();
+        rect(x*step, y*step,step,step);
       }
     }
   };

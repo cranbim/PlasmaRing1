@@ -73,7 +73,7 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 
 	this.clientBlob=function(data){
 		var pos=findDevRingPos(data.device);
-		var bData;
+		var bData=null;
 		console.log("RIng pos:"+pos);
 		if(pos!==null){
 			bData=this.blobList.newBlob(data.x, data.y, data.device);
@@ -81,7 +81,8 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		} else {
 			console.log("ring received blob from device "+data.device+" but not attached to this ring");
 		}
-		sendBlobData();//bData
+		//console.log("blobData:"+bData);
+		sendBlobData(bData);//
 	};
 
 	this.detacher=function(data){
@@ -91,7 +92,8 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 	this.updateBlob=function(data){
 		var bData=this.blobList.updateBlob(data.id, data.x, data.y, data.ttl, this.ringLengthPixels);
 		//need to also check wraparound on ring length
-		sendBlobData();//bData
+		//console.log("blobData:"+bData);
+		sendBlobData(bData);//bData
 	};
 
 	this.buildJSONRingMeta=function(){
@@ -222,7 +224,7 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		processAttachGrants();
 		processAttachOffers();
 		this.blobList.run(this.ringLengthPixels);
-		sendBlobData([]);
+		sendBlobData();
 	};
 
 	function processAttachRequests(){
@@ -312,12 +314,14 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		}
 	}
 
-	function sendBlobData(){//(blobs){
-		// if(blobs.length===0){
-		// 	blobs=self.blobList.getBlobs();
-		// }
-		var blobs=self.blobList.getBlobs();
+	function sendBlobData(blobs){//(blobs){
+		if(!blobs || blobs.length===0){
+			// console.log("sendBlobData was empty");
+			blobs=self.blobList.getBlobs();
+		}
+		//var blobs=self.blobList.getBlobs();
 		io.sockets.emit("blobData", {blobs:blobs});
+		// console.log("sendBlobData:"+blobs.length);
 	}
 
 
@@ -412,7 +416,8 @@ function BlobList(){
 			// console.log("No blob matched");
 		}
 		//return blob data tructured as an array
-		//return [b.getPos()];
+		if(!b) return [];
+		return [b.getPos()];
 	};
 
 	this.findBlob=function(id){
@@ -426,7 +431,7 @@ function BlobList(){
 	this.newBlob=function(x,y,dev){
 		var b=new Blob(x,y, dev);
 		blobs.push(b);
-		//return [b.getPos()];
+		return [b.getPos()];
 	};
 
 	this.run=function(maxX){
