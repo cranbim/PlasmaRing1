@@ -57,6 +57,11 @@ function newConnection(socket){
   socket.on('newBlob',blobFromClient);
   socket.on('blobUpdate',updateBlob);
   socket.on('detach', detacher);
+  socket.on('echo', logEcho);
+
+  function logEcho(data){
+		ring.logEcho(data);
+  }
 
   function detacher(data){
 		ring.detacher(data);
@@ -118,7 +123,7 @@ function beat(){
 	console.log("heartbeat "+heartbeat);
 	if(sessions.length>0) io.sockets.emit('heartbeat',{beat:heartbeat});
 //	unattached.run();
-	ring.run();
+	ring.run(heartbeat);
 	sendConsoleData();
 }
 

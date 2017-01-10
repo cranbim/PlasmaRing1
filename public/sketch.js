@@ -23,6 +23,7 @@ var noisePerWorldPixel=0.005;
 var noiseSegsX=20;
 var noiseField;
 var attached=false;
+var currentBeat; //heartbeat received from server
 
 
 
@@ -67,6 +68,10 @@ function draw() {
   myBlobs.run();
   statusBar.show();
   statusBar.run();
+  if(frameCount%30===0){ //assume slower framerate
+    //console.log("send echo beat: "+currentBeat);
+    socket.emit('echo',{device: id, beat: currentBeat});
+  }
 }
 
 
@@ -123,6 +128,7 @@ function connected(){
   socket.on('startX', setStartX);
   socket.on('blobData',handleBlobData);
   socket.on('notifyAttached',notifyAttached);
+  socket.on('notifyDetached',notifyDetached);
 }
 
 function notifyAttached(){
@@ -143,7 +149,7 @@ function processBlobData(blobs){
       if(!myBlobs.exists(blob)){
         //if not create it
         myBlobs.addBlob(blob);
-        console.log("Blob entered my patch "+blob.id+" "+blob.x);
+        console.log("Blob entered my patch "+blob.id+" x:"+blob.x+" S:"+myStartX+" E:"+myEndX);
       }
       //if we do then just run it
     }
@@ -275,6 +281,14 @@ function attachedToRing(data){
 function detachFromRing(){
   console.log("Requested detach");
   socket.emit('detach',{id:id});
+  processDetach();
+}
+
+function notifyDetached(){
+  processDetach();
+}
+
+function processDetach(){
   statusBar.trigger("detach");
   statusMessage.html('Joined, but detached');
   // attachButton.html('detach');
@@ -283,6 +297,7 @@ function detachFromRing(){
   attachButton.show();
   geometry.html("Width "+myWidth);
   attached=false;
+  console.log("Been detached");
 }
 
 function permitAttacher(){
@@ -335,6 +350,9 @@ function attachMe(){
 
 function beat(data){
   console.log(data.beat);
+  currentBeat=data.beat;
+  //send back echo of the hearbeat to show I'm still listening
+  //socket.emit('echo',{device: id, beat: data.beat});
   // syncTime=Date.now();
   // noiseField.syncOffset();
 }

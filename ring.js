@@ -26,9 +26,11 @@ function run(){
 function DeviceShadow(session, devid, devWidth){
 	this.session=session;
 	this.devid=devid;
+	this.lastBeat=0;
 	this.devWidth=devWidth;
 	this.startX=null;
 	this.endX=null;
+	this.suspended=false;
 	console.log("New device shadow "+this.session.id+", Device"+devid+", Width:"+devWidth+" pixels");
 
 	this.requestForPermit=function(){
@@ -89,6 +91,86 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		detachFromRing(data.id);
 	};
 
+	this.logEcho=function(data){
+		var ds=findDevShadow(data.device);
+		if(ds){
+			ds.lastBeat=data.beat;
+		}
+		// console.log("received beat echo:"+data.beat);
+	};
+
+	function checkShadowHealth(heartbeat){
+		for(var i=self.deviceShadows.length-1; i>=0; i--){
+			var ds=self.deviceShadows[i];
+			if(ds.lastBeat<heartbeat-10){
+				//force detach of device
+				console.log("Device "+ds.session.id+" last checked in "+ds.lastBeat+" Detach this device");
+				ds.session.socket.emit('notifyDetached',{});
+				detachFromRing(ds.session.id);
+			} else if(ds.lastBeat<heartbeat-1){
+				if(!ds.suspended){
+					console.log("Device "+ds.session.id+" last checked in "+ds.lastBeat+" Skip this device");
+					suspendDev(ds.session.id);
+					ds.suspended=true;
+				} 
+			} else {
+				if(ds.suspended){
+					unsuspendDev(ds.session.id);
+					ds.suspended=false;
+				}
+			}
+		}
+	}
+
+	function suspendDev(devid){
+		var i=findDevRingPos(devid);
+		var shadow=self.findShadow(devid);
+		var startX=shadow.startX;
+		var dw=shadow.devWidth;
+		//this.deviceShadows.splice(i,1);
+		//update ring geometry
+		self.ringLengthDevs--;
+		self.ringLengthPixels-=dw;
+			//update all subsequent devices
+		if(unattached!==null){ //don't do this on the unattached ring	
+			shadow.setStartX(null);
+			for(var j=i; j<self.deviceShadows.length; j++){
+				self.deviceShadows[j].setStartX(startX);
+				startX=self.deviceShadows[j].startX;
+			}
+		}
+		console.log(self.name+" "+self.ringID+" "+" suspended device shadow: "+devid);
+	}
+
+	function unsuspendDev(devid){
+		var pos=findDevRingPos(devid);
+		var shadow=self.findShadow(devid);
+		if(this.ringLengthDevs===1){
+			next=0;
+			newStartX=0;
+		}
+		else if(pos===self.deviceShadows.length-1){
+			next=0;
+			newStartX=self.deviceShadows[pos-1].endX;
+		}else{
+			next=pos+1
+			newStartX=self.deviceShadows[next].startX;
+		}
+		shadow.setStartX(newStartX);
+		//update ring geometry
+		self.ringLengthDevs++;
+		self.ringLengthPixels+=shadow.devWidth;
+		//update all subsequent devices
+		var endX=shadow.endX;
+		if(next>0){
+			for(var i=next; i<self.deviceShadows.length; i++){
+				self.deviceShadows[i].setStartX(endX);
+				endX=self.deviceShadows[i].endX;
+			}
+		}
+		console.log(self.name+" "+self.ringID+" "+" reinstated device shadow: "+devid);
+	}
+
 	this.updateBlob=function(data){
 		var bData=this.blobList.updateBlob(data.id, data.x, data.y, data.ttl, this.ringLengthPixels);
 		//need to also check wraparound on ring length
@@ -144,13 +226,16 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 
 		var endX=shadow.endX;
 		for(var i=next+1; i<this.deviceShadows.length; i++){
-			this.deviceShadows[i].setStartX(endX);
-			endX=this.deviceShadows[i].endX;
+			if(!this.deviceShadows[i].suspended){
+				this.deviceShadows[i].setStartX(endX);
+				endX=this.deviceShadows[i].endX;
+			}
 		}
 		console.log(this.name+" "+this.ringID+" "+"new dev shadow joins ring, "+this.ringLengthDevs+" "+this.ringLengthPixels);
 //		console.log(this.deviceShadows);
 		return next; //position on inserted device
 	};
+
 
 	this.unjoinRing=function(id){
 		var i=findDevRingPos(id);
@@ -166,8 +251,10 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		if(unattached!==null){ //don't do this on the unattached ring	
 			shadow.setStartX(null);
 			for(var j=i; j<this.deviceShadows.length; j++){
-				this.deviceShadows[j].setStartX(startX);
-				startX=this.deviceShadows[j].startX;
+				if(!this.deviceShadows[j].suspended){
+					this.deviceShadows[j].setStartX(startX);
+					startX=this.deviceShadows[j].startX;
+				}
 			}
 		}
 		console.log(this.name+" "+this.ringID+" "+"unJoined device shadow: "+id+" "+this.deviceShadows.length);
@@ -218,13 +305,15 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		});
 	}
 
-	this.run=function(){
+	this.run=function(heartbeat){
+		this.heartbeat=heartbeat;
 		//console.log(this.name+" "+this.ringID+" running");
 		processAttachRequests();
 		processAttachGrants();
 		processAttachOffers();
 		this.blobList.run(this.ringLengthPixels);
 		sendBlobData();
+		checkShadowHealth(heartbeat);
 	};
 
 	function processAttachRequests(){
@@ -367,6 +456,7 @@ function Ring(name, io){ //have to pass io to have access to sockets object
 		var pos=self.joinRing(devid,next);
 		//remove from lobby
 		var ds=unattached.findShadow(devid);
+		ds.lastBeat=self.heartbeat;
 		unattached.unjoinRing(devid);
 		//notify the device
 		var s=ds.session.socket;
@@ -469,6 +559,9 @@ function BlobList(){
 			if(x>=maxX) {
 				x-=maxX;
 				console.log("x wrapped back to start");
+			} else if(x<0){
+				x+=maxX;
+				console.log("x wrapped back to end");
 			} else {
 				// console.log("x is within limits");
 			}
